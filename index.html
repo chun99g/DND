@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V42 (Diagnostic Mode)</title>
+    <title>RPG Engine V44 (Final Release)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -16,33 +16,47 @@
     </script>
 
     <style>
-        :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; }
+        :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --success: #03dac6; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+
         .app-container { display: flex; height: 100%; }
         .sidebar { width: 420px; background: #181818; border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
         .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
-        #dice-stage { width: 100%; height: 380px; background: #333; position: relative; overflow: hidden; border-bottom: 1px solid #555; }
+
+        /* 3D 舞台 (恢復乾淨背景) */
+        #dice-stage { width: 100%; height: 380px; background: #252525; position: relative; overflow: hidden; border-bottom: 1px solid #333; }
         
-        /* 診斷面板 */
-        #debug-log { 
-            position: absolute; top: 10px; left: 10px; 
-            color: #0f0; background: rgba(0,0,0,0.9); 
-            padding: 10px; font-size: 12px; font-family: monospace;
-            max-width: 95%; max-height: 200px; overflow-y: auto; 
-            pointer-events: none; white-space: pre-wrap; z-index: 20; 
-            border: 1px solid #0f0; border-radius: 4px;
+        /* 隱藏式載入提示 */
+        #status-msg { 
+            position: absolute; bottom: 10px; left: 0; width: 100%; 
+            text-align: center; font-size: 11px; color: #777; pointer-events: none; 
         }
 
         .panel-content { padding: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; }
         .dice-btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
-        .d-btn { height: 36px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 12px; background: #444; box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
+        .d-btn { height: 36px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 12px; background: #333; box-shadow: 0 2px 0 rgba(0,0,0,0.3); transition: 0.1s; }
+        .d-btn:active { transform: scale(0.95); }
+        .d-btn:hover { background: #444; }
         
+        /* 骰子顏色標示 */
+        .btn-d4 { border-bottom: 3px solid #0F9D58; } 
+        .btn-d6 { border-bottom: 3px solid #4285F4; } 
+        .btn-d8 { border-bottom: 3px solid #9E00FF; }
+        .btn-d10 { border-bottom: 3px solid #0097A7; } 
+        .btn-d12 { border-bottom: 3px solid #DB4437; } 
+        .btn-d20 { border-bottom: 3px solid #F4B400; }
+
+        /* 卡片與 UI */
         .card { background: var(--panel); padding: 12px; border-radius: 8px; border: 1px solid #333; }
+        .card-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        .bar-wrap { background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 4px; }
+        .bar-fill { height: 100%; transition: width 0.5s ease; }
+        .stat-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 2px; }
         .header-bar { padding: 10px 20px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; color: #aaa; font-size: 13px; }
-        .chat-log { flex: 1; padding: 20px; }
+        .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; }
         .input-area { padding: 15px; background: #181818; display: flex; gap: 10px; }
         input[type="text"] { flex: 1; padding: 12px; background: #252525; border: 1px solid #444; color: white; border-radius: 24px; outline: none; padding-left: 20px; }
-        .send-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; }
+        .send-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; font-size: 18px; }
         
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; }
         .modal-box { background: #252525; width: 450px; padding: 30px; border-radius: 12px; border: 1px solid #444; }
@@ -60,18 +74,28 @@
         .attr-ctrl { display: flex; align-items: center; gap: 5px; }
         .attr-btn { width: 20px; height: 20px; border-radius: 50%; border: none; background: #444; color: #fff; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center;}
         .range-input { width: 60px; background: #111; border: 1px solid #444; color: #fff; text-align: center; padding: 4px; border-radius: 4px; }
+        .msg { margin-bottom: 20px; max-width: 90%; padding: 12px 16px; border-radius: 8px; animation: fadeIn 0.3s; }
+        .msg.gm { background: #252525; border-left: 4px solid var(--accent); color: #ddd; }
+        .msg.user { background: #3d2c5e; color: #fff; margin-left: auto; text-align: right; }
+        .options-container { padding: 10px 15px; background: #181818; display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid #333; }
+        .opt-btn { background: #2a2a2a; color: #bbb; border: 1px solid #444; padding: 6px 12px; border-radius: 15px; cursor: pointer; font-size: 13px; text-align: left; }
+        .opt-btn:hover { background: #333; color: var(--accent); border-color: var(--accent); }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
     <div id="setup-modal" class="modal">
         <div class="modal-box">
-            <h2 style="color:var(--accent);">🚀 V42 診斷模式</h2>
+            <h2 style="color:var(--accent);">🚀 RPG Engine V44</h2>
             <p>請輸入世界觀：</p>
-            <textarea id="world-prompt" rows="3" style="width:100%; background:#111; color:#fff; border:1px solid #444; padding:10px;" placeholder="D&D 5e..."></textarea>
-            <button class="modal-btn" onclick="startCharacterCreation()">下一步</button>
+            <textarea id="world-prompt" rows="3" style="width:100%; background:#111; color:#fff; border:1px solid #444; padding:10px;" placeholder="例如：龍與地下城 D&D 5e..."></textarea>
+            <button class="modal-btn" onclick="startCharacterCreation()">下一步：生成角色</button>
             <div style="margin-top:20px; border-top:1px solid #444; padding-top:10px;">
-                <button onclick="loadFromCode()" style="padding:8px; cursor:pointer;">讀取存檔</button>
+                <p style="font-size:12px; color:#aaa;">讀取存檔：</p>
+                <input type="text" id="load-code" placeholder="存檔碼..." style="width:100%; padding:8px; background:#111; border:1px solid #444; color:#fff; margin-bottom:5px;">
+                <button class="modal-btn" style="background:#444; color:#fff; margin-top:0;" onclick="loadFromCode()">讀取</button>
             </div>
         </div>
     </div>
@@ -86,8 +110,8 @@
             <div id="char-stats-editor" class="attr-edit-grid" style="margin: 20px 0;"></div>
             <div id="derived-stats" style="background:#111; padding:10px; margin-bottom:15px; text-align:center;">計算中...</div>
             <div style="display:flex; gap:10px;">
-                <button class="modal-btn" onclick="randomizeStats()">🎲 重擲</button>
-                <button class="modal-btn" onclick="confirmStart()">✅ 開始</button>
+                <button class="modal-btn" style="background:#444; color:#fff;" onclick="randomizeStats()">🎲 重擲</button>
+                <button class="modal-btn" onclick="confirmStart()">✅ 開始冒險</button>
             </div>
         </div>
     </div>
@@ -95,21 +119,19 @@
     <div class="app-container">
         <aside class="sidebar">
             <div id="dice-stage">
-                <div id="debug-log">初始化診斷程序...</div>
+                <div id="status-msg">初始化 3D 引擎...</div>
             </div>
             <div class="panel-content">
                 <div class="card">
                     <div class="dice-btn-grid">
-                        <button class="d-btn" onclick="showDice(4)">D4</button>
-                        <button class="d-btn" onclick="showDice(6)">D6</button>
-                        <button class="d-btn" onclick="showDice(8)">D8</button>
-                        <button class="d-btn" onclick="showDice(10)">D10</button>
-                        <button class="d-btn" onclick="showDice(12)">D12</button>
-                        <button class="d-btn" onclick="showDice(20)">D20</button>
+                        <button class="d-btn btn-d4" onclick="showDice(4)">D4</button>
+                        <button class="d-btn btn-d6" onclick="showDice(6)">D6</button>
+                        <button class="d-btn btn-d8" onclick="showDice(8)">D8</button>
+                        <button class="d-btn btn-d10" onclick="showDice(10)">D10</button>
+                        <button class="d-btn btn-d12" onclick="showDice(12)">D12</button>
+                        <button class="d-btn btn-d20" onclick="showDice(20)">D20</button>
                     </div>
-                    <div style="font-size:11px; color:#aaa; text-align:center;">
-                        紅色 = 找不到圖 / 黑色 = 燈光問題 / 花色 = 成功
-                    </div>
+                    <div style="font-size:11px; color:#aaa; text-align:center;">點擊按鈕展示骰子</div>
                 </div>
                 <div class="card">
                     <div class="card-header">屬性</div>
@@ -122,17 +144,20 @@
                         <div class="attr-main"><div class="attr-lbl">CHA</div><div id="disp-cha"></div></div>
                     </div>
                 </div>
-                <div class="card"><div class="card-header">狀態</div><div class="stat-row">HP <span id="hp-txt"></span></div><div class="bar-wrap"><div id="hp-bar" class="bar-fill" style="width:100%; background:#f55;"></div></div></div>
+                <div class="card"><div class="card-header">狀態</div><div class="stat-row">HP <span id="hp-txt"></span></div><div class="bar-wrap"><div id="hp-bar" class="bar-fill" style="width:100%; background:#cf6679;"></div></div></div>
             </div>
         </aside>
         
         <main class="main-content">
-            <div class="header-bar">V42 Diagnostic Mode</div>
+            <div class="header-bar">
+                <span id="location-display"><i class="fas fa-map-marker-alt"></i> 虛空</span>
+                <span id="time-display">初始</span>
+            </div>
             <div id="chat-log" class="chat-log"><div class="msg gm">系統就緒。</div></div>
             <div id="options-area" class="options-container"></div>
             <div class="input-area">
-                <input type="text" id="user-input" placeholder="輸入行動...">
-                <button class="send-btn" onclick="sendMsg()">Send</button>
+                <input type="text" id="user-input" placeholder="輸入行動..." autocomplete="off">
+                <button class="send-btn" onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
             </div>
         </main>
     </div>
@@ -141,7 +166,7 @@
         import * as THREE from 'three';
         import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
-        // === 設定區 ===
+        // === 1. 設定區 (檔名檢查) ===
         window.USER_API_KEY = ""; 
         const TEXTURE_FILES = {
             4:  "4Sliver.png", 
@@ -151,96 +176,79 @@
             12: "12Sliver.png",
             20: "20Sliver.png"
         };
-        const DICE_EXACT_NAMES = {
-            4:  "4Sliver",
-            6:  "6Sliver",
-            8:  "8Sliver",
-            10: "10Sliver",
-            12: "12Sliver",
-            20: "20Sliver"
-        };
 
+        // === 2. 3D 引擎 ===
         let scene, camera, renderer, currentDice;
         let diceModels = {}; 
         let loadedTextures = {};
         let isSpinning = true;
         let allMeshes = [];
 
-        function log(msg, color="#fff") {
-            const d = document.getElementById('debug-log');
-            d.innerHTML += `<span style='color:${color}'>${msg}</span>\n`;
-            d.scrollTop = d.scrollHeight;
-        }
-
         function init3D() {
             const container = document.getElementById('dice-stage');
+            const statusMsg = document.getElementById('status-msg');
             
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x333333); // 亮一點的背景
+            scene.background = new THREE.Color(0x252525);
             
-            // 燈光 (超強光，確保不會黑)
-            const amb = new THREE.AmbientLight(0xffffff, 2.0); 
+            const amb = new THREE.AmbientLight(0xffffff, 1.2); 
             scene.add(amb);
-            const dir = new THREE.DirectionalLight(0xffffff, 3.0);
-            dir.position.set(0, 10, 0);
+            const dir = new THREE.DirectionalLight(0xffffff, 2.0);
+            dir.position.set(5, 10, 5);
             scene.add(dir);
+            const front = new THREE.DirectionalLight(0xffffff, 1.0);
+            front.position.set(0, 0, 10);
+            scene.add(front);
 
             camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-            camera.position.set(0, 3, 7);
+            camera.position.set(0, 3, 6);
             camera.lookAt(0, 0, 0);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
             container.appendChild(renderer.domElement);
 
-            // 1. 載入貼圖 (加入失敗處理)
-            log("1. 開始載入貼圖...", "#aaa");
+            // 載入貼圖
             const texLoader = new THREE.TextureLoader();
-            
             for (let sides in TEXTURE_FILES) {
-                const path = "./" + TEXTURE_FILES[sides]; // 強制 ./ 開頭
-                texLoader.load(path, (tex) => {
+                texLoader.load("./" + TEXTURE_FILES[sides], (tex) => {
                     tex.colorSpace = THREE.SRGBColorSpace;
-                    // ★★★ 嘗試修正貼圖方向 (有些 FBX 需要這個) ★★★
-                    // tex.flipY = false; 
                     loadedTextures[sides] = tex;
-                    log(`✅ D${sides} 圖片 OK`, "#0f0");
-                }, undefined, (e) => {
-                    log(`❌ D${sides} 圖片失敗! 請檢查檔名: ${TEXTURE_FILES[sides]}`, "#f55");
                 });
             }
 
-            // 2. 載入 FBX
+            // 載入 FBX (盲抓模式)
             const fbxLoader = new FBXLoader();
             fbxLoader.load('./DiceSet.fbx', (object) => {
-                log("2. FBX 讀取成功", "#0f0");
                 
                 object.traverse(child => {
                     if(child.isMesh) {
                         child.visible = false;
-                        allMeshes.push(child);
+                        allMeshes.push(child); // 收集所有 Mesh
                         
-                        // 歸零
+                        // 強制歸零
                         child.geometry.computeBoundingBox();
                         const center = new THREE.Vector3();
                         child.geometry.boundingBox.getCenter(center);
                         child.geometry.translate(-center.x, -center.y, -center.z);
                         child.scale.set(0.2, 0.2, 0.2);
-
-                        // 匹配
-                        for(let sides in DICE_EXACT_NAMES) {
-                            if(child.name.includes(DICE_EXACT_NAMES[sides])) {
-                                diceModels[sides] = child;
-                                log(`🔹 對應: D${sides} -> ${child.name}`, "#8ab4f8");
-                            }
-                        }
                     }
                 });
                 
-                if(allMeshes.length === 0) log("⚠️ 警告：FBX 裡沒東西", "#f55");
-                else log("系統就緒，請按按鈕", "#fff");
+                // 自動分配 (Blind Mapping)
+                // 假設 FBX 裡面的順序是: 4, 6, 8, 10, 12, 20 (或類似順序)
+                // 這裡我們簡單地把找到的前 6 個物件，依序分配給按鈕
+                const order = [4, 6, 8, 10, 12, 20];
+                allMeshes.forEach((mesh, index) => {
+                    if (index < order.length) {
+                        diceModels[order[index]] = mesh;
+                    }
+                });
 
-            }, undefined, (e) => log("❌ FBX 檔案找不到 (DiceSet.fbx)", "#f55"));
+                if(allMeshes.length > 0) statusMsg.innerText = "";
+                else statusMsg.innerText = "Error: No meshes found";
+
+            }, undefined, (e) => statusMsg.innerText = "Error: FBX not found");
 
             animate();
         }
@@ -249,42 +257,44 @@
             if(currentDice) scene.remove(currentDice);
             
             let mesh = diceModels[sides];
-            // Fallback
-            if (!mesh && allMeshes.length > 0) {
-                const idxMap = {4:0, 6:1, 8:2, 10:3, 12:4, 20:5};
-                mesh = allMeshes[idxMap[sides] % allMeshes.length];
-                log(`⚠️ 找不到對應，使用備用模型`, "#fb0");
-            }
+            
+            // 如果沒對應到，用第1個頂替 (防止當機)
+            if (!mesh && allMeshes.length > 0) mesh = allMeshes[0];
 
             if(mesh) {
                 mesh = mesh.clone();
                 mesh.visible = true;
                 
-                // ★★★ 診斷材質 ★★★
                 if (loadedTextures[sides]) {
-                    // 使用 MeshBasicMaterial (無視光線，直接顯示貼圖)
-                    mesh.material = new THREE.MeshBasicMaterial({
+                    mesh.material = new THREE.MeshStandardMaterial({
                         map: loadedTextures[sides],
-                        color: 0xffffff
+                        roughness: 0.3, metalness: 0.1, color: 0xffffff
                     });
-                    log(`D${sides}: 應用貼圖 (Basic模式)`, "#fff");
                 } else {
-                    // 沒貼圖 -> 紅色
-                    mesh.material = new THREE.MeshBasicMaterial({color: 0xff0000}); 
-                    log(`D${sides}: 缺貼圖 (變紅色)`, "#f55");
+                    // 備用顏色：根據面數給不同顏色
+                    const colors = {4:0x0F9D58, 6:0x4285F4, 8:0x9E00FF, 10:0x0097A7, 12:0xDB4437, 20:0xF4B400};
+                    mesh.material = new THREE.MeshStandardMaterial({
+                        color: colors[sides] || 0xcccccc, roughness: 0.3
+                    });
                 }
 
                 scene.add(mesh);
                 currentDice = mesh;
-                mesh.rotation.x = Math.random();
-                mesh.rotation.y = Math.random();
+                mesh.rotation.x = Math.random() * Math.PI;
+                mesh.rotation.y = Math.random() * Math.PI;
+                isSpinning = true;
+                
+                const input = document.getElementById('user-input');
+                const txt = ` (擲 D${sides}) `;
+                if (!input.value.includes(txt)) input.value += txt; 
+                input.focus();
             }
         };
 
         function animate() {
             requestAnimationFrame(animate);
-            if(currentDice) {
-                currentDice.rotation.y += 0.01;
+            if(currentDice && isSpinning) {
+                currentDice.rotation.y += 0.015;
                 currentDice.rotation.x += 0.005;
             }
             renderer.render(scene, camera);
@@ -301,27 +311,26 @@
     </script>
 
     <script>
-        // (這部分邏輯與前版相同，為節省空間，請確保複製完整的邏輯腳本)
-        // ... (API, randomization, etc)
-        // 為了確保可以執行，我還是補上最基本的邏輯:
+        window.USER_API_KEY = ""; 
+        let confirmedModel = ""; 
         let conversationHistory = []; 
         let state = { hp: 10, maxHp: 10, mp: 10, maxMp: 10, mpLabel: "MP", san: 100, maxSan: 100, stats: { str:10, dex:10, con:10, int:10, wis:10, cha:10 }, inventory: [], npcs: [], time: "初始", weather: "未知", location: "起始點", worldPrompt: "" };
 
         window.onload = function() {
             const cachedKey = localStorage.getItem('my_gemini_key_v1');
             if (cachedKey) window.USER_API_KEY = cachedKey;
-            const saved = localStorage.getItem('rpg_autosave_v42');
+            const saved = localStorage.getItem('rpg_autosave_v44');
             if (saved && confirm("偵測到存檔，要繼續嗎？")) loadGameData(JSON.parse(saved));
         };
 
         function startCharacterCreation() {
             state.worldPrompt = document.getElementById('world-prompt').value.trim() || "D&D 5e";
             if(!window.USER_API_KEY) {
-                const inputKey = prompt("請輸入 API Key:", "");
+                const inputKey = prompt("請輸入您的 Gemini API Key:", "");
                 if(inputKey) {
                     window.USER_API_KEY = inputKey;
                     localStorage.setItem('my_gemini_key_v1', inputKey);
-                } else return;
+                } else { return; }
             }
             randomizeStats();
             document.getElementById('setup-modal').classList.add('hidden');
@@ -367,13 +376,13 @@
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
                 const data = await res.json();
                 const m = (data.models||[]).find(x=>x.name.includes("gemini-1.5-flash")||x.name.includes("gemini-pro"));
-                if(!m) throw new Error("API Key 無效或額度不足");
+                if(!m) throw new Error("Key 無效");
                 confirmedModel = m.name.replace("models/","");
                 
                 const sysPrompt = `你是一位 D&D 5e DM。
                 【規則】
                 1. 禁止客套開場，直接描寫場景 (In Media Res)。
-                2. 檢定必須註明骰子類型 (請擲 D20)。
+                2. 檢定必須註明骰子 (請擲 D20)。
                 3. 必須附上調整值提示。
                 4. 結尾提供 A/B/C 選項。
                 【屬性】${JSON.stringify(state.stats)}
@@ -397,7 +406,7 @@
                 const aiTxt = data.candidates[0].content.parts[0].text;
                 conversationHistory.push({role:"model", parts:[{text:aiTxt}]});
                 processAIResponse(aiTxt);
-            } catch(e) { document.getElementById('load-anim')?.remove(); addMsg("sys","Error: 請檢查網路或 Key"); }
+            } catch(e) { document.getElementById('load-anim')?.remove(); addMsg("sys","Error"); }
         }
 
         function processAIResponse(txt) {
@@ -408,7 +417,7 @@
                     if(u.hp_change) state.hp=Math.max(0,Math.min(state.maxHp,state.hp+u.hp_change));
                     if(u.time) state.time=u.time; if(u.location) state.location=u.location;
                     if(u.story_options) renderOptions(u.story_options);
-                    localStorage.setItem('rpg_autosave_v42', JSON.stringify({state, history:conversationHistory}));
+                    localStorage.setItem('rpg_autosave_v44', JSON.stringify({state, history:conversationHistory}));
                     txt = txt.replace(json[0],"");
                 } catch(e){}
             }
@@ -442,7 +451,8 @@
         window.saveToCode = () => prompt("代碼:", btoa(encodeURIComponent(JSON.stringify({state, history:conversationHistory}))));
         window.loadFromCode = () => { try{ loadGameData(JSON.parse(decodeURIComponent(atob(document.getElementById('load-code').value)))); }catch(e){alert("無效");} };
         window.loadGameData = (d) => { state=d.state; conversationHistory=d.history; document.getElementById('setup-modal').classList.add('hidden'); updateUI(); if(!confirmedModel) detectModelAndStart().catch(()=>{}); };
-        window.resetGame = () => { if(confirm("重置?")) { localStorage.removeItem('rpg_autosave_v42'); location.reload(); } };
+        window.resetGame = () => { if(confirm("重置?")) { localStorage.removeItem('rpg_autosave_v44'); location.reload(); } };
+        document.getElementById('user-input').addEventListener('keypress', e=>{if(e.key==='Enter')sendMsg()});
     </script>
 </body>
 </html>
