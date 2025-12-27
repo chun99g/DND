@@ -2,574 +2,319 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V48 (Hardcore DND)</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRPG 冒險記錄器 (修復版)</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
-        /* --- 核心樣式 (V39.1/V47 基底) --- */
-        :root { 
-            --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; 
-            --accent: #bb86fc; --success: #03dac6; --warn: #cf6679; 
-            --d4: #34a853; --d6: #2ab7ca; --d8: #a142f4;
-            --d10: #f43f5e; --d12: #ea4335; --d20: #fb8c00;
-        }
-        body { margin: 0; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; }
-
-        .app-container { display: flex; height: 100%; }
-        .sidebar { width: 420px; background: #181818; border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
-        .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
-
-        /* --- 2D 骰子區 --- */
-        #dice-stage { 
-            width: 100%; height: 200px; background: #e8eaed; 
-            position: relative; overflow: hidden; border-bottom: 1px solid #333; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        #active-dice-area {
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
-            width: 100%; padding: 10px; max-height: 180px; overflow-y: auto;
-        }
-        .die {
-            width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;
-            font-size: 18px; font-weight: bold; color: white; cursor: pointer; user-select: none;
-            transition: transform 0.1s; position: relative;
-        }
-        .die:hover { transform: scale(1.1); }
-        .die.rolling { animation: shake 0.3s infinite linear; } /* 加快震動頻率模擬真實感 */
-
-        .die-d4 { background: var(--d4); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); padding-top: 5px; height: 40px; }
-        .die-d6 { background: var(--d6); border-radius: 4px; }
-        .die-d8 { background: var(--d8); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
-        .die-d10 { background: var(--d10); clip-path: polygon(50% 0%, 100% 38%, 50% 100%, 0% 38%); }
-        .die-d12 { background: var(--d12); clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%); }
-        .die-d20 { background: var(--d20); clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%); }
-
-        #dice-total {
-            position: absolute; bottom: 5px; right: 10px; font-size: 18px; color: #5f6368; 
-            font-weight: bold; background: rgba(255,255,255,0.9); padding: 2px 6px; border-radius: 4px; pointer-events: none;
-        }
-
-        /* --- 左側面板 --- */
-        .panel-content { padding: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; }
-        .card { background: var(--panel); padding: 12px; border-radius: 8px; border: 1px solid #333; }
-        .card-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 4px; }
-        
-        .dice-btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 5px; }
-        .d-btn { height: 32px; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; font-size: 12px; background: #333; box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
-        .d-btn:active { transform: scale(0.95); }
-        .btn-d4 { border-bottom: 3px solid var(--d4); } .btn-d6 { border-bottom: 3px solid var(--d6); }
-        .btn-d8 { border-bottom: 3px solid var(--d8); } .btn-d10 { border-bottom: 3px solid var(--d10); }
-        .btn-d12 { border-bottom: 3px solid var(--d12); } .btn-d20 { border-bottom: 3px solid var(--d20); }
-
-        #roll-btn { width: 100%; padding: 8px; margin-top: 5px; background: var(--accent); color: #000; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; }
-        #roll-btn:hover { background: #fff; }
-
-        /* 狀態 & 屬性 */
-        .stat-row-container { margin-bottom: 8px; }
-        .stat-row-container.hidden { display: none; }
-        .bar-wrap { background: #333; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 2px; }
-        .bar-fill { height: 100%; transition: width 0.5s ease; }
-        .stat-row { display: flex; justify-content: space-between; font-size: 12px; color: #ccc; }
-
-        .attr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        .attr-main { text-align: center; background: #2a2a2a; padding: 6px; border-radius: 4px; }
-        .attr-val { font-size: 16px; font-weight: bold; color: var(--accent); display: block; line-height: 1.2; }
-        .attr-mod { font-size: 11px; color: var(--success); font-weight: bold; margin-left: 2px; }
-        .attr-lbl { font-size: 10px; color: #888; display: block; margin-top: 2px; }
-        .attr-cn { font-size: 10px; color: #666; display: block; }
-
-        /* --- 聊天區 --- */
-        .header-bar { padding: 10px 20px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #aaa; }
-        .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 15px; line-height: 1.6; padding-bottom: 100px; }
-        .msg { margin-bottom: 20px; max-width: 90%; padding: 12px 16px; border-radius: 8px; animation: fadeIn 0.3s; }
-        .msg.gm { background: #252525; border-left: 4px solid var(--accent); color: #ddd; }
-        .msg.user { background: #3d2c5e; color: #fff; margin-left: auto; text-align: right; }
-        
-        .options-container { padding: 10px 15px; background: #181818; display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid #333; }
-        .opt-btn { background: #2a2a2a; color: #bbb; border: 1px solid #444; padding: 6px 12px; border-radius: 15px; cursor: pointer; font-size: 13px; transition: 0.2s; text-align: left; }
-        .opt-btn:hover { background: #333; color: var(--accent); border-color: var(--accent); }
-
-        .input-area { padding: 15px; background: #181818; display: flex; gap: 10px; border-top: 1px solid #333; }
-        input[type="text"] { flex: 1; padding: 12px; background: #252525; border: 1px solid #444; color: white; border-radius: 24px; outline: none; padding-left: 20px; }
-        .send-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-
-        /* Modal */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; }
-        .modal-box { background: #252525; width: 500px; padding: 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .modal-btn { width: 100%; padding: 12px; background: var(--accent); border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-        .hidden { display: none !important; }
-        
-        .attr-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #333; }
-        .attr-val-box { display: flex; align-items: center; gap: 10px; color: white; }
-        .circle-btn { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #555; background: #333; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-
-        @keyframes shake {
-            0% { transform: rotate(0deg) translate(1px, 1px); }
-            25% { transform: rotate(5deg) translate(-1px, -2px); }
-            50% { transform: rotate(-5deg) translate(-3px, 0px); }
-            75% { transform: rotate(5deg) translate(3px, 2px); }
-            100% { transform: rotate(0deg) translate(1px, -1px); }
+        body { background-color: #111827; color: #f3f4f6; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        .dice-anim { animation: roll 0.5s ease-out; }
+        @keyframes roll {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
 
-    <div id="setup-modal" class="modal">
-        <div class="modal-box">
-            <h2 style="color:var(--accent); margin-top:0;">🎲 RPG 啟動器 V48</h2>
-            
-            <label style="display:block; margin-bottom:5px; color:#aaa;">Gemini API Key</label>
-            <input type="password" id="api-key-input" style="width:100%; padding:10px; margin-bottom:15px; background:#202124; border:1px solid #555; color:white;">
+<div id="root"></div>
 
-            <label style="display:block; margin-bottom:5px; color:#aaa;">世界觀設定</label>
-            <textarea id="world-prompt" rows="3" style="width:100%; padding:10px; background:#202124; border:1px solid #555; color:white;" placeholder="例如：被遺忘的國度、克蘇魯的呼喚..."></textarea>
-            
-            <div style="margin-top:20px; border-top:1px solid #555; padding-top:15px;">
-                <label style="color:#aaa;">讀取存檔 (Base64)</label>
-                <input type="text" id="load-code" placeholder="貼上存檔碼..." style="width:100%; padding:10px; background:#202124; border:1px solid #555; color:white; margin-bottom:10px;">
-                <button class="modal-btn" style="background:#555; color:white;" onclick="loadGame()">📂 讀取</button>
-            </div>
+<script type="text/babel">
 
-            <button class="modal-btn" onclick="goToStats()">➡️ 創角 (分配屬性)</button>
-        </div>
-    </div>
+    // --- 圖標組件 (直接內嵌 SVG 以確保不需要額外依賴) ---
+    const IconDice = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="m16 8-8 8"/><path d="m8 8 8 8"/></svg>
+    );
+    const IconSend = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+    );
+    const IconTrash = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+    );
 
-    <div id="stats-modal" class="modal hidden">
-        <div class="modal-box">
-            <h2 style="color:var(--success);">📊 創建角色屬性</h2>
-            <p style="font-size:13px; color:#aaa; margin-bottom:10px;">請分配您的核心屬性 (範圍 72-80 或手動)</p>
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                <button class="modal-btn" style="width:48%; background:#555; color:white;" onclick="randomStats()">🎲 隨機擲骰</button>
-                <div style="color:#aaa; display:flex; align-items:center;">總點數: <span id="points-total" style="color:white; font-weight:bold; margin-left:5px;">0</span></div>
-            </div>
-            
-            <div id="stats-editor"></div>
+    // --- 設定資料 ---
+    const ATTR_MAP = {
+        STR: { label: '力量', key: 'STR' },
+        DEX: { label: '敏捷', key: 'DEX' },
+        CON: { label: '體質', key: 'CON' },
+        INT: { label: '智力', key: 'INT' },
+        WIS: { label: '感知', key: 'WIS' },
+        CHA: { label: '魅力', key: 'CHA' }
+    };
 
-            <button class="modal-btn" onclick="startGame()">✅ 完成創角，進入世界</button>
-        </div>
-    </div>
+    const getModifier = (score) => Math.floor((score - 10) / 2);
 
-    <div class="app-container">
-        <aside class="sidebar">
-            <div class="card" style="border-radius:0; border:none;">
-                <div id="dice-stage">
-                    <div id="active-dice-area">
-                        <div style="color:#888; font-size:12px; margin-top:20px;">點擊下方按鈕加入骰子</div>
-                    </div>
-                    <div id="dice-total"></div>
-                </div>
-                <div class="card" style="border-radius:0; border-top:none; background:#222;">
-                    <div class="dice-btn-grid">
-                        <button class="d-btn btn-d4" onclick="addDie(4)">D4</button>
-                        <button class="d-btn btn-d6" onclick="addDie(6)">D6</button>
-                        <button class="d-btn btn-d8" onclick="addDie(8)">D8</button>
-                        <button class="d-btn btn-d10" onclick="addDie(10)">D10</button>
-                        <button class="d-btn btn-d12" onclick="addDie(12)">D12</button>
-                        <button class="d-btn btn-d20" onclick="addDie(20)">D20</button>
-                    </div>
-                    <button id="roll-btn" onclick="rollDice()">🎲 擲出骰子</button>
-                </div>
-            </div>
-
-            <div class="panel-content">
-                <div class="card">
-                    <div class="card-header">狀態</div>
-                    <div class="stat-row-container">
-                        <div class="stat-row"><span>HP</span> <span id="hp-txt">--/--</span></div>
-                        <div class="bar-wrap"><div id="hp-bar" class="bar-fill" style="width:100%; background:var(--warn);"></div></div>
-                    </div>
-                    <div class="stat-row-container hidden" id="mp-row">
-                        <div class="stat-row"><span id="mp-label">MP</span> <span id="mp-txt">--/--</span></div>
-                        <div class="bar-wrap"><div id="mp-bar" class="bar-fill" style="width:100%; background:var(--success);"></div></div>
-                    </div>
-                    <div class="stat-row-container hidden" id="san-row">
-                        <div class="stat-row"><span>SAN</span> <span id="san-txt">--/--</span></div>
-                        <div class="bar-wrap"><div id="san-bar" class="bar-fill" style="width:100%; background:var(--accent);"></div></div>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">屬性 (調整值)</div>
-                    <div class="attr-grid" id="disp-stats"></div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">人物關係</div>
-                    <div id="npc-list" style="font-size:13px; color:#aaa; padding:5px;">尚無記錄</div>
-                </div>
-
-                <div class="card" style="flex:1">
-                    <div class="card-header">物品欄</div>
-                    <div id="inv-list" style="font-size:13px; color:#aaa; padding:5px;">無</div>
-                </div>
-            </div>
-        </aside>
+    function App() {
+        // --- 狀態 ---
+        const [apiKey, setApiKey] = React.useState('');
+        const [isKeySet, setIsKeySet] = React.useState(false);
+        const [messages, setMessages] = React.useState([]);
+        const [input, setInput] = React.useState('');
+        const [isLoading, setIsLoading] = React.useState(false);
+        const [tempKey, setTempKey] = React.useState('');
         
-        <main class="main-content">
-            <div class="header-bar">
-                <div style="flex:1;">
-                    <span id="loc-disp"><i class="fas fa-map-marker-alt"></i> 虛空</span> | 
-                    <span id="time-disp">初始</span>
-                </div>
-                <div>
-                    <button style="background:none; border:none; color:#aaa; cursor:pointer;" onclick="saveGame()">💾 存檔</button>
-                    <button style="background:none; border:none; color:#f55; margin-left:10px; cursor:pointer;" onclick="resetGame()">🗑️ 重置</button>
-                </div>
-            </div>
+        // 角色狀態
+        const [character, setCharacter] = React.useState({
+            hp: 10,
+            maxHp: 10,
+            attributes: { STR: 12, DEX: 14, CON: 13, INT: 10, WIS: 11, CHA: 15 }
+        });
 
-            <div id="chat-log">
-                <div class="msg gm">請設定 API Key 與世界觀以開始遊戲。</div>
-            </div>
+        const chatEndRef = React.useRef(null);
 
-            <div class="options-container" id="options-area"></div>
+        // --- 初始化：只讀取 LocalStorage ---
+        React.useEffect(() => {
+            const savedKey = localStorage.getItem('openai_api_key');
+            if (savedKey) {
+                setApiKey(savedKey);
+                setIsKeySet(true);
+                setMessages([{ role: 'system', content: '系統就緒。請輸入行動或與 GM 對話。' }]);
+            }
+        }, []);
 
-            <div class="input-area">
-                <input type="text" id="user-input" placeholder="輸入行動..." autocomplete="off">
-                <button class="send-btn" onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
-            </div>
-        </main>
-    </div>
+        // --- 自動捲動 ---
+        React.useEffect(() => {
+            chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, [messages]);
 
-    <script>
-        // --- 全局變數 ---
-        let apiKey = "";
-        let conversationHistory = [];
-        let diceBag = [];
-        let state = {
-            stats: { STR:10, DEX:10, CON:10, INT:10, WIS:10, CHA:10 },
-            hp: 10, maxHp: 10, mp: 0, maxMp: 0, san: 0, maxSan: 0, mpLabel: null,
-            npcs: [], inventory: [],
-            location: "未知", time: "未知"
+        // --- API 設定 ---
+        const handleSaveKey = () => {
+            if (!tempKey.trim()) return;
+            localStorage.setItem('openai_api_key', tempKey);
+            setApiKey(tempKey);
+            setIsKeySet(true);
+            setMessages([{ role: 'system', content: 'API Key 已儲存。' }]);
         };
-        const ATTR_MAP = { STR: "力量", DEX: "敏捷", CON: "體質", INT: "智力", WIS: "感知", CHA: "魅力" };
 
-        // --- 初始化 & Enter 鍵綁定 ---
-        window.onload = function() {
-            const savedKey = localStorage.getItem('gemini_key');
-            if(savedKey) document.getElementById('api-key-input').value = savedKey;
+        const handleClearKey = () => {
+            localStorage.removeItem('openai_api_key');
+            setApiKey('');
+            setIsKeySet(false);
+            setTempKey('');
+        };
 
-            // 綁定 Enter 鍵發送
-            document.getElementById('user-input').addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    sendMsg();
+        // --- 發送訊息 ---
+        const sendMessage = async () => {
+            if (!input.trim() || isLoading) return;
+
+            const userMsg = { role: 'user', content: input };
+            setMessages(prev => [...prev, userMsg]);
+            setInput('');
+            setIsLoading(true);
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o-mini", // 或 gpt-3.5-turbo
+                        messages: [
+                            { role: "system", content: "你是一個 TRPG 的 GM (地下城主)。請根據玩家的輸入進行判斷，並推動劇情。請保持回應簡潔有趣。" },
+                            ...messages,
+                            userMsg
+                        ]
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message);
                 }
-            });
+
+                const aiMsg = data.choices[0].message;
+                setMessages(prev => [...prev, aiMsg]);
+
+            } catch (error) {
+                setMessages(prev => [...prev, { role: 'system', content: `錯誤: ${error.message} (請檢查 API Key)` }]);
+            } finally {
+                setIsLoading(false);
+            }
         };
 
-        // --- Crypto RNG (真隨機數生成器) ---
-        function getSecureRandom(min, max) {
-            const array = new Uint32Array(1);
-            window.crypto.getRandomValues(array);
-            // 正規化為 0.0 到 1.0 之間的浮點數
-            const randomFloat = array[0] / (0xFFFFFFFF + 1);
-            return Math.floor(randomFloat * (max - min + 1)) + min;
-        }
+        // --- 骰子功能 ---
+        const rollDice = (sides) => {
+            const result = Math.floor(Math.random() * sides) + 1;
+            const msg = `(擲骰 D${sides}): ${result}`;
+            setMessages(prev => [...prev, { role: 'system', content: msg }]);
+        };
 
-        // --- 介面導航 ---
-        function goToStats() {
-            const k = document.getElementById('api-key-input').value.trim();
-            if(!k) return alert("請輸入 API Key！");
-            apiKey = k;
-            localStorage.setItem('gemini_key', k);
-            
-            document.getElementById('setup-modal').classList.add('hidden');
-            document.getElementById('stats-modal').classList.remove('hidden');
-            randomStats();
-        }
+        // --- UI ---
+        return (
+            <div className="flex h-screen overflow-hidden bg-gray-900 text-gray-100 font-sans">
+                
+                {/* 左側面板：角色與工具 */}
+                <div className="w-[320px] flex-shrink-0 border-r border-gray-700 flex flex-col p-4 bg-gray-800 overflow-y-auto">
+                    
+                    {/* 標題與重置 */}
+                    <div className="flex justify-between items-center mb-6">
+                        <h1 className="text-xl font-bold text-purple-400 flex items-center gap-2">
+                            <IconDice /> TRPG 面板
+                        </h1>
+                        {isKeySet && (
+                            <button onClick={handleClearKey} className="text-gray-500 hover:text-red-400 text-xs flex items-center gap-1 border border-gray-600 px-2 py-1 rounded">
+                                <IconTrash /> 重置 Key
+                            </button>
+                        )}
+                    </div>
 
-        // --- 屬性配點系統 ---
-        function renderStatsEditor() {
-            const container = document.getElementById('stats-editor');
-            container.innerHTML = "";
-            let total = 0;
-            for(let key in state.stats) {
-                total += state.stats[key];
-                container.innerHTML += `
-                    <div class="attr-row">
-                        <span style="color:#aaa; width:60px;">${key}</span>
-                        <div class="attr-val-box">
-                            <div class="circle-btn" onclick="modStat('${key}', -1)">-</div>
-                            <span id="edit-${key}" style="width:25px; text-align:center;">${state.stats[key]}</span>
-                            <div class="circle-btn" onclick="modStat('${key}', 1)">+</div>
+                    {/* 骰子按鈕區 */}
+                    <div className="mb-6 bg-gray-700/30 p-4 rounded-lg border border-gray-600">
+                        <div className="text-gray-400 text-xs font-bold mb-3 uppercase">快速擲骰</div>
+                        <div className="grid grid-cols-3 gap-2">
+                            {[4, 6, 8, 10, 12, 20].map(d => (
+                                <button 
+                                    key={d}
+                                    onClick={() => rollDice(d)}
+                                    className="bg-gray-700 hover:bg-gray-600 border border-gray-600 text-white py-2 rounded text-sm font-medium transition-colors"
+                                >
+                                    D{d}
+                                </button>
+                            ))}
                         </div>
                     </div>
-                `;
-            }
-            document.getElementById('points-total').innerText = total;
-        }
 
-        function modStat(key, val) {
-            state.stats[key] += val;
-            renderStatsEditor();
-        }
-
-        function randomStats() {
-            // 使用 Crypto RNG 進行 3d6 或範圍隨機
-            for(let key in state.stats) {
-                // 模擬 72-80 總和的平均分配，這裡用簡單範圍 9-16
-                state.stats[key] = getSecureRandom(9, 16); 
-            }
-            renderStatsEditor();
-        }
-
-        // --- 2D 骰子邏輯 (使用 Crypto RNG) ---
-        function addDie(sides) {
-            diceBag.push({ sides: sides, val: sides });
-            renderDice();
-        }
-
-        function renderDice() {
-            const area = document.getElementById('active-dice-area');
-            area.innerHTML = "";
-            if(diceBag.length === 0) {
-                area.innerHTML = `<div style="color:#888; font-size:12px; margin-top:20px;">點擊下方按鈕加入骰子</div>`;
-                document.getElementById('dice-total').innerText = "";
-                return;
-            }
-            
-            let total = 0;
-            diceBag.forEach((d, idx) => {
-                const div = document.createElement('div');
-                div.className = `die die-d${d.sides}`;
-                div.innerText = d.val;
-                div.onclick = () => { diceBag.splice(idx, 1); renderDice(); };
-                area.appendChild(div);
-                total += d.val;
-            });
-            document.getElementById('dice-total').innerText = `Total: ${total}`;
-        }
-
-        function rollDice() {
-            if(diceBag.length === 0) return;
-            const els = document.querySelectorAll('.die');
-            els.forEach(e => e.classList.add('rolling'));
-            
-            setTimeout(() => {
-                diceBag.forEach(d => {
-                    // ★★★ 這裡使用真隨機數 ★★★
-                    d.val = getSecureRandom(1, d.sides);
-                });
-                renderDice();
-                els.forEach(e => e.classList.remove('rolling'));
-                // 不自動填入對話框，保留讓玩家自己操作
-            }, 500); // 0.5秒動畫
-        }
-
-        // --- 核心遊戲流程 (Start & Chat) ---
-        async function startGame() {
-            document.getElementById('stats-modal').classList.add('hidden');
-            updateHUD();
-            
-            const world = document.getElementById('world-prompt').value || "D&D 5e";
-            
-            // ★★★ 核心 System Prompt (Hardcore DM) ★★★
-            const sysPrompt = `
-            你是一位極度嚴謹、無情的 D&D 5e 地下城主 (DM)。
-            世界觀：${world}。
-            玩家屬性：${JSON.stringify(state.stats)}。
-
-            【核心指令】
-            1. **禁止代勞**：絕對不要幫玩家決定行動或擲骰。
-            2. **檢定機制**：當玩家嘗試有風險的行動時，請根據 D&D 5e 規則，告知「請進行[屬性/技能]檢定，DC 為 [數值]」。
-               - 若有優勢/劣勢請說明。
-               - 顯示修正值計算 (例如：力量+3, 熟練+2)。
-            3. **世界模擬**：即使玩家在對話，世界其他地方的時間也在流動。NPC 有自己的動機，不會呆站著。請在描述中體現這一點。
-            4. **創角引導**：遊戲開始第一步，請引導玩家完成角色細節（種族、職業、外觀），不要直接跳進戰鬥。
-            5. **戰力控制**：嚴格控制屬性與物品，不要隨意給予強大神器或數值提升。
-            
-            【輸出格式】
-            每次回復的**最後面**，必須附上這段 JSON 碼 (用 \`\`\`json 包果)，用來更新介面：
-            \`\`\`json
-            {
-                "hp_change": 0,
-                "mp_change": 0, "mp_label": null,
-                "san_change": 0,
-                "location": "目前地點",
-                "time": "目前時間",
-                "npcs": [{"name":"NPC名", "rel":"關係描述"}],
-                "inventory": ["物品1"],
-                "options": ["建議選項1", "建議選項2"]
-            }
-            \`\`\`
-            `;
-            
-            conversationHistory = [{ role: "user", parts: [{ text: sysPrompt }] }];
-            addMsg("gm", "<i>正在初始化世界與規則模組...</i>", true);
-            await callGemini("請開始遊戲，先協助我完成角色背景設定，再進入冒險。");
-        }
-
-        async function sendMsg() {
-            const input = document.getElementById('user-input');
-            const txt = input.value.trim();
-            if(!txt) return;
-            
-            addMsg("user", txt);
-            input.value = "";
-            document.getElementById('options-area').innerHTML = ""; 
-            addMsg("gm", "...", true);
-            
-            await callGemini(txt);
-        }
-
-        async function callGemini(text) {
-            conversationHistory.push({ role: "user", parts: [{ text: text }] });
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: conversationHistory })
-                });
-                const data = await res.json();
-                document.querySelectorAll('.loading').forEach(e => e.remove());
-                
-                if(data.candidates) {
-                    const aiText = data.candidates[0].content.parts[0].text;
-                    processResponse(aiText);
-                    conversationHistory.push({ role: "model", parts: [{ text: aiText }] });
-                } else {
-                    addMsg("gm", "API Error: 請檢查 Key 是否正確。");
-                }
-            } catch(e) {
-                addMsg("gm", "連線錯誤。");
-            }
-        }
-
-        function processResponse(text) {
-            // 提取並移除 JSON
-            const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
-            let displayText = text;
-            
-            if(jsonMatch) {
-                try {
-                    const data = JSON.parse(jsonMatch[1]);
-                    // 更新狀態
-                    if(data.location) state.location = data.location;
-                    if(data.time) state.time = data.time;
-                    if(data.npcs) state.npcs = data.npcs;
-                    if(data.inventory) state.inventory = data.inventory;
-                    
-                    // 數值變動
-                    if(data.hp_change) state.hp = Math.max(0, Math.min(state.maxHp, state.hp + data.hp_change));
-                    if(data.mp_label) state.mpLabel = data.mp_label;
-                    if(data.san_change) {
-                        state.san += data.san_change; 
-                        if(!state.maxSan) state.maxSan = 100;
-                    }
-
-                    if(data.options) renderOptions(data.options);
-                    
-                    updateHUD();
-                    displayText = text.replace(jsonMatch[0], "");
-                } catch(e) { console.warn("JSON Parse Error"); }
-            }
-            addMsg("gm", marked.parse(displayText));
-        }
-
-        function renderOptions(opts) {
-            const area = document.getElementById('options-area');
-            area.innerHTML = "";
-            opts.forEach(o => {
-                const b = document.createElement('button');
-                b.className = 'opt-btn';
-                b.innerText = o;
-                b.onclick = () => { document.getElementById('user-input').value = o; sendMsg(); };
-                area.appendChild(b);
-            });
-        }
-
-        // --- UI 更新邏輯 ---
-        function updateHUD() {
-            // 屬性顯示
-            const attrBox = document.getElementById('disp-stats');
-            attrBox.innerHTML = "";
-            for(let k in state.stats) {
-                const val = state.stats[k];
-                const mod = Math.floor((val-10)/2);
-                const sign = mod>=0?"+":"";
-                attrBox.innerHTML += `
-                    <div class="attr-main">
-                        <span class="attr-lbl">${k}</span>
-                        <span class="attr-cn">${ATTR_MAP[k]}</span>
-                        <span class="attr-val">${val}<span class="attr-mod">(${sign}${mod})</span></span>
+                    {/* 屬性區 (這裡修復了您要求的中文顯示) */}
+                    <div className="mb-6 bg-gray-700/30 p-4 rounded-lg border border-gray-600">
+                        <h3 className="text-gray-400 text-xs font-bold mb-3 border-b border-gray-600 pb-2 flex justify-between">
+                            <span>屬性 (ATTRIBUTES)</span>
+                            <span className="text-[10px] text-gray-500">MOD</span>
+                        </h3>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                            {Object.keys(character.attributes).map((attr) => {
+                                const score = character.attributes[attr];
+                                const mod = getModifier(score);
+                                return (
+                                    <div key={attr} className="bg-gray-800 p-2 rounded border border-gray-700 flex flex-col items-center justify-center relative">
+                                        {/* 屬性名稱：英文 + 中文 */}
+                                        <div className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-wider">
+                                            {attr} <span className="text-gray-500">({ATTR_MAP[attr].label})</span>
+                                        </div>
+                                        {/* 數值顯示 */}
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-xl font-bold text-white">{score}</span>
+                                            <span className={`text-xs ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                {mod >= 0 ? '+' : ''}{mod}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
-                `;
-            }
 
-            // 狀態條
-            document.getElementById('hp-txt').innerText = `${state.hp}/${state.maxHp}`;
-            document.getElementById('hp-bar').style.width = `${(state.hp/state.maxHp)*100}%`;
+                    {/* HP 狀態條 */}
+                    <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>HP (生命值)</span>
+                            <span>{character.hp} / {character.maxHp}</span>
+                        </div>
+                        <div className="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden">
+                            <div 
+                                className="bg-rose-500 h-2.5 rounded-full" 
+                                style={{ width: `${(character.hp / character.maxHp) * 100}%` }}
+                            ></div>
+                        </div>
+                    </div>
+                </div>
 
-            const mpRow = document.getElementById('mp-row');
-            if(state.mpLabel) {
-                mpRow.classList.remove('hidden');
-                document.getElementById('mp-label').innerText = state.mpLabel;
-                // MP 條邏輯可依需求擴充
-            } else { mpRow.classList.add('hidden'); }
+                {/* 右側面板：對話 */}
+                <div className="flex-1 flex flex-col relative bg-gray-900">
+                    
+                    {/* API Key 輸入遮罩 (如果未設定) */}
+                    {!isKeySet && (
+                        <div className="absolute inset-0 z-50 bg-gray-900/95 flex items-center justify-center p-4">
+                            <div className="bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-md border border-gray-700">
+                                <h2 className="text-lg font-bold mb-2 text-white">設定 API Key</h2>
+                                <p className="text-sm text-gray-400 mb-4">請輸入 OpenAI API Key 以開始遊戲。Key 只會儲存在您的瀏覽器中。</p>
+                                <input
+                                    type="password"
+                                    value={tempKey}
+                                    onChange={(e) => setTempKey(e.target.value)}
+                                    placeholder="sk-..."
+                                    className="w-full bg-gray-900 border border-gray-600 rounded p-3 text-white mb-4 focus:outline-none focus:border-purple-500 text-sm"
+                                />
+                                <button 
+                                    onClick={handleSaveKey}
+                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition-colors"
+                                >
+                                    開始冒險
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
-            const sanRow = document.getElementById('san-row');
-            if(state.maxSan > 0) {
-                sanRow.classList.remove('hidden');
-                document.getElementById('san-txt').innerText = `${state.san}/${state.maxSan}`;
-                document.getElementById('san-bar').style.width = `${(state.san/state.maxSan)*100}%`;
-            } else { sanRow.classList.add('hidden'); }
+                    {/* 訊息顯示區 */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        {messages.length === 0 && isKeySet && (
+                            <div className="text-center text-gray-500 mt-10 text-sm">
+                                -- 冒險尚未開始，請輸入指令 --
+                            </div>
+                        )}
+                        {messages.map((msg, idx) => (
+                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] px-4 py-3 rounded-lg text-sm leading-relaxed whitespace-pre-wrap ${
+                                    msg.role === 'user' 
+                                        ? 'bg-purple-600 text-white rounded-br-none' 
+                                        : msg.role === 'system' 
+                                            ? 'bg-gray-800 text-gray-400 text-xs border border-gray-700 py-2'
+                                            : 'bg-gray-800 text-gray-200 border border-gray-700 rounded-bl-none'
+                                }`}>
+                                    {msg.content}
+                                </div>
+                            </div>
+                        ))}
+                        {isLoading && (
+                            <div className="flex justify-start">
+                                <div className="bg-gray-800 px-4 py-3 rounded-lg border border-gray-700 text-gray-400 text-sm animate-pulse">
+                                    GM 正在思考...
+                                </div>
+                            </div>
+                        )}
+                        <div ref={chatEndRef} />
+                    </div>
 
-            // NPC & 物品
-            const npcBox = document.getElementById('npc-list');
-            if(state.npcs.length) {
-                npcBox.innerHTML = state.npcs.map(n=>`<div><b style="color:#bb86fc">${n.name}</b>: ${n.rel}</div>`).join('');
-            } else { npcBox.innerHTML = "尚無記錄"; }
-            
-            document.getElementById('inv-list').innerText = state.inventory.join(", ") || "無";
-            document.getElementById('loc-disp').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${state.location}`;
-            document.getElementById('time-disp').innerText = state.time;
-        }
+                    {/* 輸入區 */}
+                    <div className="p-4 bg-gray-800 border-t border-gray-700">
+                        <div className="relative flex gap-2">
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                                placeholder="輸入行動或對話..."
+                                disabled={!isKeySet || isLoading}
+                                className="flex-1 bg-gray-900 border border-gray-600 rounded-lg pl-4 pr-4 py-3 text-white focus:outline-none focus:border-purple-500 disabled:opacity-50"
+                            />
+                            <button 
+                                onClick={sendMessage}
+                                disabled={!isKeySet || isLoading}
+                                className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-4 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <IconSend />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
-        function addMsg(role, html, loading=false) {
-            const box = document.getElementById('chat-log');
-            const div = document.createElement('div');
-            div.className = `msg ${role} ${loading?'loading':''}`;
-            div.innerHTML = html;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        }
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+</script>
 
-        // --- 存讀檔 ---
-        function saveGame() {
-            const data = btoa(encodeURIComponent(JSON.stringify({state, history:conversationHistory})));
-            prompt("請複製存檔碼:", data);
-        }
-        
-        function loadGame() {
-            try {
-                const code = document.getElementById('load-code').value.trim();
-                const json = decodeURIComponent(atob(code));
-                const data = JSON.parse(json);
-                state = data.state;
-                conversationHistory = data.history;
-                
-                document.getElementById('setup-modal').classList.add('hidden');
-                updateHUD();
-                
-                // 恢復對話
-                const box = document.getElementById('chat-log');
-                box.innerHTML = "";
-                conversationHistory.forEach(m => {
-                    if(m.role==='user' && m.parts[0].text.includes('JSON')) return;
-                    let t = m.parts[0].text.replace(/```json[\s\S]*```/, "");
-                    addMsg(m.role==='model'?'gm':'user', marked.parse(t));
-                });
-                
-                // 檢查 Key
-                if(!localStorage.getItem('gemini_key')) {
-                    const k = prompt("讀檔成功，請輸入 API Key 繼續:");
-                    if(k) { apiKey = k; localStorage.setItem('gemini_key', k); }
-                } else { apiKey = localStorage.getItem('gemini_key'); }
-
-            } catch(e) { alert("讀取失敗，存檔碼錯誤。"); }
-        }
-        
-        function resetGame() { if(confirm("確定重置？")) location.reload(); }
-    </script>
 </body>
 </html>
