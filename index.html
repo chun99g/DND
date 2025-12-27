@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V43 (Final Visual Fix)</title>
+    <title>RPG Engine V44 (Face-to-Camera Ultimate)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -16,32 +16,31 @@
     </script>
 
     <style>
-        :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #8ab4f8; }
+        :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
         .app-container { display: flex; height: 100%; }
         .sidebar { width: 400px; background: #181818; border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
         .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
 
-        /* --- 3D 舞台：背景純淨，高度適中 --- */
+        /* 3D 舞台：純黑背景，強調主體 */
         #dice-stage { 
-            width: 100%; height: 300px; /* 給予足夠高度顯示大骰子 */
-            background: #202124; 
+            width: 100%; height: 320px; 
+            background: #111; /* 純黑背景提升對比度 */
             position: relative; overflow: hidden; border-bottom: 1px solid #333; 
-            cursor: pointer; /* 提示可點擊 */
+            cursor: pointer;
         }
         
         #instruction-overlay { 
             position: absolute; bottom: 10px; width: 100%; text-align: center; 
-            color: rgba(255,255,255,0.4); font-size: 11px; pointer-events: none; 
-            text-transform: uppercase; letter-spacing: 1px;
+            color: rgba(255,255,255,0.2); font-size: 10px; pointer-events: none; 
+            letter-spacing: 2px;
         }
 
         .panel-content { padding: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; }
         
         .card { background: var(--panel); padding: 12px; border-radius: 8px; border: 1px solid #333; }
         
-        /* 標題欄 + 小按鈕 */
         .card-header { 
             display: flex; justify-content: space-between; align-items: center;
             font-size: 13px; color: #aaa; margin-bottom: 8px; font-weight: bold;
@@ -49,11 +48,11 @@
 
         .mini-roll-btn {
             background: var(--accent); color: #000; border: none; 
-            padding: 5px 15px; border-radius: 15px; font-size: 12px; font-weight: bold; 
-            cursor: pointer; transition: 0.2s;
+            padding: 5px 20px; border-radius: 20px; font-size: 13px; font-weight: bold; 
+            cursor: pointer; transition: 0.2s; box-shadow: 0 0 10px rgba(187, 134, 252, 0.2);
         }
-        .mini-roll-btn:hover { background: #fff; }
-        .mini-roll-btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+        .mini-roll-btn:hover { background: #fff; box-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
+        .mini-roll-btn:disabled { background: #444; color: #888; cursor: not-allowed; box-shadow: none; }
 
         .dice-btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .d-btn { 
@@ -64,7 +63,7 @@
         .d-btn:hover { background: #333; border-color: var(--accent); color: #fff; }
         .d-btn:active { transform: translateY(1px); }
 
-        /* 屬性與狀態 */
+        /* UI Elements */
         .bar-wrap { background: #333; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
         .bar-fill { height: 100%; transition: width 0.5s ease; }
         .stat-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 2px; }
@@ -73,7 +72,6 @@
         .attr-val { font-size: 16px; font-weight: bold; color: var(--accent); }
         .attr-lbl { font-size: 11px; color: #888; }
 
-        /* 右側區域 */
         .header-bar { padding: 10px 20px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #aaa; }
         .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 15px; line-height: 1.6; }
         .msg { margin-bottom: 15px; max-width: 90%; padding: 10px 14px; border-radius: 6px; }
@@ -86,7 +84,6 @@
         input[type="text"] { flex: 1; padding: 10px 15px; background: #252525; border: 1px solid #444; color: white; border-radius: 20px; outline: none; }
         .send-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; }
 
-        /* Modal */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-box { background: #252525; width: 450px; padding: 30px; border-radius: 12px; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .modal-btn { width: 100%; padding: 12px; background: var(--accent); color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 15px; }
@@ -100,8 +97,8 @@
 
     <div id="setup-modal" class="modal">
         <div class="modal-box">
-            <h2 style="color:var(--accent); margin-top:0;">RPG Engine V43</h2>
-            <p style="color:#aaa; font-size:12px;">Close-Up Edition: Max 2 Dice</p>
+            <h2 style="color:var(--accent); margin-top:0;">RPG Engine V44</h2>
+            <p style="color:#aaa; font-size:12px;">Ultimate Visibility Edition</p>
             <p>世界觀設定：</p>
             <textarea id="world-prompt" rows="3" style="width:100%; background:#111; color:#fff; border:1px solid #444; padding:10px; border-radius:4px;" placeholder="例如：龍與地下城 D&D 5e..."></textarea>
             <button class="modal-btn" onclick="startCharacterCreation()">開始冒險</button>
@@ -122,7 +119,7 @@
     <div class="app-container">
         <aside class="sidebar">
             <div id="dice-stage">
-                <div id="debug-log">Loading...</div>
+                <div id="debug-log">Initializing High-Res Renderer...</div>
                 <div id="instruction-overlay">點擊骰子移除 (CLICK TO REMOVE)</div>
             </div>
             
@@ -191,10 +188,10 @@
             20: "./d20_low.glb"
         };
 
-        // --- 視覺參數 ---
-        const CAMERA_Y = 12; // 相機高度 (越低越近)
-        const FOV = 20;      // 視野 (越小越像望遠鏡，變形越小)
-        const SPACING = 2.5; // 兩顆骰子的間距
+        // ★★★ V44 視覺參數：極致清晰 ★★★
+        const CAMERA_Y = 15; 
+        const FOV = 15; // 超長焦鏡頭：大幅壓縮空間，讓物體看起來更大更正
+        const SPACING = 4.0; 
         
         let scene, camera, renderer;
         let loadedModels = {}; 
@@ -207,39 +204,35 @@
             const debugLog = document.getElementById('debug-log');
             
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x202124); 
+            scene.background = new THREE.Color(0x111111); 
             
-            // --- 燈光系統 (高清照明) ---
-            const amb = new THREE.AmbientLight(0xffffff, 0.8); // 基礎光
+            // --- 燈光系統：高對比攝影棚光 ---
+            const amb = new THREE.AmbientLight(0xffffff, 0.7);
             scene.add(amb);
             
-            // 頂部直射光 (模擬檯燈)，產生清晰的影子和高光
+            // 主光：正上方偏前，照亮數字面
             const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
-            keyLight.position.set(2, 10, 2);
-            keyLight.castShadow = true;
-            keyLight.shadow.mapSize.width = 2048; // 高解析度陰影
-            keyLight.shadow.mapSize.height = 2048;
+            keyLight.position.set(0, 20, 5); 
             scene.add(keyLight);
             
-            // 補光 (減少死黑)
-            const fillLight = new THREE.DirectionalLight(0xaaccff, 1.0);
-            fillLight.position.set(-5, 5, -5);
-            scene.add(fillLight);
+            // 輪廓光：讓骰子邊緣銳利
+            const rimLight = new THREE.DirectionalLight(0x8ab4f8, 1.0);
+            rimLight.position.set(0, 5, -10);
+            scene.add(rimLight);
 
-            // --- 攝影機 (特寫鏡頭) ---
-            // 使用小 FOV + 遠距離 = 望遠鏡效果 (減少透視變形，讓骰子看起來更大更正)
+            // --- 攝影機 ---
             camera = new THREE.PerspectiveCamera(FOV, container.clientWidth / container.clientHeight, 0.1, 100);
             camera.position.set(0, CAMERA_Y, 0); 
-            camera.lookAt(0, 0, 0); // 永遠盯著中心
+            camera.lookAt(0, 0, 0);
 
-            // --- 渲染器 (高畫質) ---
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            // --- 渲染器 (關鍵設定) ---
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
             renderer.setSize(container.clientWidth, container.clientHeight);
-            // ★★★ 關鍵：開啟視網膜解析度支援 ★★★
-            renderer.setPixelRatio(window.devicePixelRatio);
+            
+            // ★ 強制開啟最高解析度 (解決模糊問題) ★
+            renderer.setPixelRatio(window.devicePixelRatio); 
             renderer.outputColorSpace = THREE.SRGBColorSpace;
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             container.appendChild(renderer.domElement);
 
             raycaster = new THREE.Raycaster();
@@ -248,7 +241,7 @@
 
             // --- 模型載入 ---
             const loader = new GLTFLoader();
-            debugLog.innerText = "Loading High-Res Models...";
+            debugLog.innerText = "Loading High-Res Textures...";
             debugLog.classList.add('show');
 
             let loadCount = 0;
@@ -263,36 +256,36 @@
                     const center = box.getCenter(new THREE.Vector3());
                     model.position.sub(center); 
 
-                    // 2. 統一尺寸計算 (強制統一視覺大小)
+                    // 2. 尺寸標準化 (統一放大)
                     const size = box.getSize(new THREE.Vector3());
                     const maxDim = Math.max(size.x, size.y, size.z);
-                    // 讓所有骰子在畫面上看起來大約是 2.0 單位大
-                    let targetSize = 2.0;
-                    if(sides == 4) targetSize = 2.4; // D4 視覺上較小，強制放大
-                    if(sides == 20) targetSize = 1.9; // D20 較圓，稍微縮小
+                    // 目標尺寸：大！讓它填滿格子
+                    let targetSize = 3.5; 
+                    if(sides == 4) targetSize = 4.5; // D4 強制特大
+                    if(sides == 20) targetSize = 3.2; 
 
                     const scale = targetSize / maxDim;
                     model.scale.set(scale, scale, scale);
 
-                    // 3. 材質強制優化 (確保你的貼圖清晰)
+                    // 3. 材質極致優化
+                    const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
+                    
                     model.traverse((child) => {
                         if (child.isMesh) {
-                            child.castShadow = true;
-                            child.receiveShadow = true;
                             if(child.material) {
                                 child.material.side = THREE.DoubleSide;
-                                // 讓材質不要太塑膠，保留貼圖細節
-                                child.material.roughness = 0.4;
-                                child.material.metalness = 0.1;
+                                child.material.roughness = 0.4; // 不反光，保證數字清晰
+                                child.material.metalness = 0.0;
                                 
-                                // ★★★ 關鍵：開啟各向異性過濾，讓斜視角的數字不模糊 ★★★
+                                // ★ 強制開啟各向異性過濾 (解決貼圖模糊的關鍵) ★
                                 if(child.material.map) {
-                                    child.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
-                                    child.material.map.minFilter = THREE.LinearMenuItemFilter;
+                                    child.material.map.anisotropy = maxAnisotropy;
+                                    child.material.map.minFilter = THREE.LinearMipmapLinear;
+                                    child.material.map.needsUpdate = true;
                                 }
                                 
-                                // 確保幾何體有法線 (為了後續計算轉正)
-                                if (child.geometry && !child.geometry.attributes.normal) {
+                                // 重算並平滑法線
+                                if (child.geometry) {
                                     child.geometry.computeVertexNormals();
                                 }
                             }
@@ -311,7 +304,7 @@
             animate();
         }
 
-        // --- 點擊移除 (暴力檢測版) ---
+        // --- 點擊刪除 ---
         function onDiceClick(event) {
             if (isRolling) return; 
             const container = document.getElementById('dice-stage');
@@ -332,23 +325,18 @@
             }
         }
 
-        // --- 新增骰子 (Max 2) ---
+        // --- 新增骰子 ---
         window.addDice = function(sides) {
             if (!loadedModels[sides]) return;
             if (isRolling) return;
 
-            // 限制最多 2 顆，超過擠掉舊的
-            if (diceList.length >= 2) {
-                removeDice(diceList[0]);
-            }
+            if (diceList.length >= 2) removeDice(diceList[0]);
 
             const template = loadedModels[sides];
             const newDice = template.clone();
             
-            // 初始角度：歸零
-            newDice.rotation.set(0, 0, 0); 
-            // 立即執行一次「完美轉正」，確保出來就是正的
-            snapToFace(newDice, sides);
+            // 初始：直接正面朝上
+            snapToCamera(newDice, sides);
 
             scene.add(newDice);
             diceList.push({ mesh: newDice, sides: sides });
@@ -361,21 +349,17 @@
             updateLayout();
         }
 
-        // --- 版面配置 (Layout) ---
         function updateLayout() {
             if (diceList.length === 0) return;
-
             if (diceList.length === 1) {
-                // 一顆：正中央
                 diceList[0].mesh.position.set(0, 0, 0);
             } else {
-                // 兩顆：左右分開
-                diceList[0].mesh.position.set(-SPACING/2, 0, 0);
-                diceList[1].mesh.position.set(SPACING/2, 0, 0);
+                diceList[0].mesh.position.set(-SPACING, 0, 0);
+                diceList[1].mesh.position.set(SPACING, 0, 0);
             }
         }
 
-        // --- 擲骰 (原地旋轉 + 鎖定) ---
+        // --- 擲骰 ---
         window.rollAll = function() {
             if (diceList.length === 0 || isRolling) return;
 
@@ -384,7 +368,7 @@
             btn.disabled = true;
             btn.innerText = "...";
 
-            const duration = 600; // 0.6秒快速滾動
+            const duration = 600;
             const startTime = Date.now();
 
             function rollLoop() {
@@ -393,16 +377,16 @@
                 
                 if (elapsed < duration) {
                     diceList.forEach(d => {
-                        // 快速亂轉
+                        // 瘋狂自轉
                         d.mesh.rotation.x += 0.5;
                         d.mesh.rotation.y += 0.5;
-                        d.mesh.rotation.z += 0.5;
+                        d.mesh.rotation.z += 0.3;
                     });
                     requestAnimationFrame(rollLoop);
                 } else {
-                    // 停止時，執行「完美轉正」
+                    // ★ 停止時，強制面對鏡頭 ★
                     diceList.forEach(d => {
-                        snapToFace(d.mesh, d.sides);
+                        snapToCamera(d.mesh, d.sides);
                     });
                     
                     isRolling = false;
@@ -413,9 +397,8 @@
             rollLoop();
         };
 
-        // --- ★★★ 核心技術：面法線鎖定 (Face Locking) ★★★ ---
-        // 這段程式碼會找出「最接近朝上」的面，然後把整顆骰子轉到「完全朝上」
-        function snapToFace(object, sides) {
+        // --- ★★★ 核心：面對鏡頭演算法 (Face-to-Camera) ★★★ ---
+        function snapToCamera(object, sides) {
             let mesh = null;
             object.traverse(c => { if(c.isMesh) mesh = c; });
             if(!mesh) return;
@@ -425,47 +408,45 @@
             const posAttr = geometry.attributes.position;
             const count = posAttr.count;
 
-            // 目標向量：
-            // 一般骰子 (D6, D20)：我們要找朝上的面 (0, 1, 0)
-            // D4：因為 D4 幾何通常是底面在下，我們要找朝下的面 (0, -1, 0)，這樣才會穩
-            const targetDir = (sides == 4) ? new THREE.Vector3(0, -1, 0) : new THREE.Vector3(0, 1, 0);
+            // 目標：直接對準鏡頭向量 (0, 1, 0) 因為我們是俯視
+            // 無論是 D4 還是 D20，我們都希望顯示數字的那個面，其法線是朝上的
+            const cameraDir = new THREE.Vector3(0, 1, 0);
             
             let bestFaceNormal = new THREE.Vector3();
             let maxDot = -Infinity;
 
-            // 遍歷所有面
             for (let i = 0; i < count; i += 3) {
                 const vA = new THREE.Vector3().fromBufferAttribute(posAttr, i);
                 const vB = new THREE.Vector3().fromBufferAttribute(posAttr, i+1);
                 const vC = new THREE.Vector3().fromBufferAttribute(posAttr, i+2);
                 
-                // 計算面的法線
                 const cb = new THREE.Vector3().subVectors(vC, vB);
                 const ab = new THREE.Vector3().subVectors(vA, vB);
                 const faceNormal = new THREE.Vector3().crossVectors(cb, ab).normalize();
                 
-                // 轉到世界座標
                 faceNormal.applyMatrix3(normalMatrix).normalize();
 
-                const dot = faceNormal.dot(targetDir);
+                const dot = faceNormal.dot(cameraDir);
                 if (dot > maxDot) {
                     maxDot = dot;
                     bestFaceNormal.copy(faceNormal);
                 }
             }
 
-            // 計算需要的旋轉量 (Quaternion)
-            const quaternion = new THREE.Quaternion().setFromUnitVectors(bestFaceNormal, targetDir);
+            // 計算旋轉量，把那個面轉到正上方
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(bestFaceNormal, cameraDir);
             object.applyQuaternion(quaternion);
 
-            // --- D4 最終修正 ---
-            // D4 趴在地上後，我們要確保它「轉正」面對使用者
+            // --- D4 特殊修正 ---
+            // 上一步已經把數字面轉到水平朝上了。
+            // 但 D4 是三角形，可能尖端朝左或朝右。
+            // 我們希望尖端朝下 (或朝上)，看起來正一點。
             if (sides == 4) {
-                // 這裡做一個簡單的修正：強制 Y 軸歸零或轉 180 度
-                // 由於不知道具體貼圖方向，這裡假設其中一面是正的
-                object.rotation.y = 0; 
-                // 如果你發現字是倒的，可以試著取消下面這行的註解：
-                // object.rotation.y = Math.PI; 
+                // 這裡我們不再依賴運氣，直接強制重置 Y 軸旋轉為 0
+                // 這樣每次停下來，三角形的方向都是一致的
+                // 根據模型不同，可能需要加 PI (180度)
+                // 這裡預設轉 180 度讓平底在下方視覺比較穩
+                object.rotation.y = Math.PI; 
             }
         }
 
@@ -501,24 +482,26 @@
                     return;
                 }
             }
-            // 這裡簡化屬性生成流程
+            randomizeStats();
+            document.getElementById('setup-modal').classList.add('hidden');
+            document.getElementById('char-modal').classList.remove('hidden');
+        }
+
+        function randomizeStats() {
             let min = 72, max = 80;
             const target = Math.floor(Math.random()*(max-min+1))+min;
             const keys=['str','dex','con','int','wis','cha'];
             keys.forEach(k=>state.stats[k]=3);
             let pts = target - 18;
             while(pts>0){ const k=keys[Math.floor(Math.random()*6)]; if(state.stats[k]<18){state.stats[k]++; pts--;} }
-            
-            document.getElementById('setup-modal').classList.add('hidden');
-            document.getElementById('char-modal').classList.remove('hidden');
             document.getElementById('derived-stats').innerText = `總屬性點: ${target}`;
         }
 
-        function confirmStart() {
+        async function confirmStart() {
             document.getElementById('char-modal').classList.add('hidden');
             updateUI();
             addMsg("sys","世界構建中...");
-            detectModelAndStart();
+            await detectModelAndStart();
         }
 
         async function detectModelAndStart() {
@@ -585,7 +568,7 @@
             document.getElementById('location-display').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${state.location}`;
             document.getElementById('time-display').innerText = state.time;
             const map = {str:'disp-str', dex:'disp-dex', con:'disp-con', int:'disp-int', wis:'disp-wis', cha:'disp-cha'};
-            for(let k in map) document.getElementById(map[k]).innerText = state.stats[k];
+            for(let k in map) document.getElementById(map[k]).innerHTML = `<div class="attr-val">${state.stats[k]}</div>`;
         }
 
         function addMsg(r, h) { const l=document.getElementById('chat-log'); l.innerHTML+=`<div class="msg ${r}">${h}</div>`; l.scrollTop=l.scrollHeight; }
