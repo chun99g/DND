@@ -3,63 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的 3D 骰子展示</title>
+    <title>深淵遺跡：命運之骰</title>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     <style>
-        body { margin: 0; background-color: #2b2b2b; color: white; font-family: sans-serif; text-align: center; }
-        h1 { padding: 20px; }
-        .container {
+        /* 整體風格：黑暗奇幻風 */
+        body {
+            margin: 0;
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Merriweather', 'Georgia', serif;
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            padding: 20px;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
         }
-        /* 設定每個骰子展示框的大小 */
-        model-viewer {
+
+        /* 故事文字區 */
+        #story-container {
+            width: 80%;
+            max-width: 600px;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #4CAF50; /* 綠色邊框呼應骰子 */
+            border-radius: 5px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        h1 { color: #4CAF50; margin-top: 0; }
+        p { line-height: 1.6; font-size: 1.1rem; }
+
+        /* 3D 骰子展示舞台 */
+        #dice-stage {
+            position: relative;
             width: 300px;
             height: 300px;
-            background-color: #444;
-            border-radius: 10px;
+            margin: 30px 0;
+            background: radial-gradient(circle, #2a2a2a 0%, #121212 70%);
+            border-radius: 50%; /* 圓形舞台 */
+            border: 2px dashed #333;
         }
-        .label { margin-top: 5px; font-weight: bold; }
+
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            --poster-color: transparent;
+        }
+
+        /* 擲骰結果特效 */
+        #roll-result {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 10px #4CAF50, 0 0 20px #4CAF50;
+            pointer-events: none; /* 讓點擊穿透 */
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 10;
+        }
+
+        /* 控制按鈕區 */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #4CAF50;
+            border-color: #4CAF50;
+            color: #121212;
+            transform: translateY(-2px);
+        }
+
+        /* 骰子旋轉動畫 */
+        @keyframes shake {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            50% { transform: rotate(-15deg); }
+            75% { transform: rotate(5deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        .rolling {
+            animation: shake 0.5s ease-in-out infinite;
+        }
     </style>
 </head>
 <body>
 
-    <h1>RPG 骰子組展示</h1>
-
-    <div class="container">
-        <div>
-            <model-viewer src="d4_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
-            <div class="label">D4</div>
-        </div>
-        
-        <div>
-            <model-viewer src="d6_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
-            <div class="label">D6</div>
-        </div>
-
-        <div>
-            <model-viewer src="d8_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
-            <div class="label">D8</div>
-        </div>
-
-        <div>
-            <model-viewer src="d10_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
-            <div class="label">D10</div>
-        </div>
-
-        <div>
-            <model-viewer src="d12_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
-            <div class="label">D12</div>
-        </div>
-
-        <div>
-            <model-viewer src="d20_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
-            <div class="label">D20</div>
-        </div>
+    <div id="story-container">
+        <h1>深淵遺跡</h1>
+        <p id="story-text">你站在古老的遺跡大門前，空氣中瀰漫著詭異的綠光。前方有一道厚重的石門，門上刻著神秘的符文。你需要擲骰子來決定你的命運。</p>
+        <p style="color: #888; font-size: 0.9rem;">(點擊下方按鈕召喚骰子並擲骰)</p>
     </div>
 
+    <div id="dice-stage">
+        <div id="roll-result"></div>
+        <model-viewer 
+            id="dice-viewer"
+            src="d20_low.glb" 
+            camera-controls 
+            auto-rotate 
+            shadow-intensity="1"
+            interaction-prompt="none"
+            camera-orbit="45deg 55deg 2.5m">
+        </model-viewer>
+    </div>
+
+    <div class="controls">
+        <button onclick="rollDice('d4', 4)">魔法飛彈 (D4)</button>
+        <button onclick="rollDice('d6', 6)">火球術 (D6)</button>
+        <button onclick="rollDice('d8', 8)">揮舞長劍 (D8)</button>
+        <button onclick="rollDice('d10', 10)">野蠻打擊 (D10)</button>
+        <button onclick="rollDice('d12', 12)">巨斧劈砍 (D12)</button>
+        <button onclick="rollDice('d20', 20)">命運檢定 (D20)</button>
+    </div>
+
+    <script>
+        const viewer = document.getElementById('dice-viewer');
+        const resultDisplay = document.getElementById('roll-result');
+        const storyText = document.getElementById('story-text');
+
+        // 簡單的敘述對應表，增加趣味性
+        const flavorText = {
+            'd4': "你詠唱咒語，數顆魔法飛彈射向黑暗...",
+            'd6': "轟！一團火球在前方炸裂！",
+            'd8': "你拔出長劍，向敵人揮去！",
+            'd10': "你發動了野蠻的猛擊！",
+            'd12': "你舉起巨斧，用盡全力劈下！",
+            'd20': "命運的時刻到了，你屏氣凝神..."
+        };
+
+        function rollDice(diceName, sides) {
+            // 1. 切換 3D 模型
+            // 注意：這裡假設你的檔名格式是 "d20_low.glb"
+            const modelName = `${diceName}_low.glb`;
+            
+            // 如果當前不是這顆骰子，先切換
+            if (!viewer.src.includes(modelName)) {
+                viewer.src = modelName;
+            }
+
+            // 2. 更新故事文字
+            storyText.innerText = flavorText[diceName];
+            storyText.style.opacity = 0.5;
+            setTimeout(() => storyText.style.opacity = 1, 300);
+
+            // 3. 隱藏上一次的結果
+            resultDisplay.style.opacity = 0;
+
+            // 4. 製造「旋轉」的視覺效果 (加速旋轉)
+            viewer.autoRotate = true;
+            viewer.rotationPerSecond = "30rad"; // 超快旋轉
+
+            // 5. 模擬運算時間 (1秒後出結果)
+            setTimeout(() => {
+                // 停止瘋狂旋轉，恢復正常展示速度
+                viewer.rotationPerSecond = "auto"; 
+                
+                // 產生隨機數字
+                const result = Math.floor(Math.random() * sides) + 1;
+                
+                // 顯示結果
+                resultDisplay.innerText = result;
+                resultDisplay.style.opacity = 1;
+
+                // 根據結果給出不同反應 (簡單範例)
+                if(result === sides) {
+                    storyText.innerText += " —— 大成功！(Critical Hit)";
+                    resultDisplay.style.color = "#FFD700"; // 金色
+                } else if (result === 1) {
+                    storyText.innerText += " —— 大失敗... (Critical Miss)";
+                    resultDisplay.style.color = "#ff4444"; // 紅色
+                } else {
+                    storyText.innerText += ` —— 結果是 ${result} 点。`;
+                    resultDisplay.style.color = "#fff";
+                }
+
+            }, 800);
+        }
+    </script>
 </body>
 </html>
