@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V39.5 (Digital Tray)</title>
+    <title>RPG Engine V39.6 (Grid & Snap)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -23,27 +23,38 @@
         .sidebar { width: 450px; background: #181818; border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
         .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
 
-        /* 3D 舞台 (加高以適應俯視) */
-        #dice-stage { width: 100%; height: 500px; background: #2a2a2a; position: relative; overflow: hidden; border-bottom: 1px solid #333; cursor: grab; }
-        #dice-stage:active { cursor: grabbing; }
+        /* 3D 舞台 */
+        #dice-stage { width: 100%; height: 500px; background: #2a2a2a; position: relative; overflow: hidden; border-bottom: 1px solid #333; cursor: pointer; }
         
         #instruction-overlay { 
             position: absolute; bottom: 10px; width: 100%; text-align: center; 
-            color: rgba(255,255,255,0.3); font-size: 12px; pointer-events: none; 
+            color: rgba(255,255,255,0.4); font-size: 12px; pointer-events: none; 
             text-transform: uppercase; letter-spacing: 1px;
         }
 
+        /* 頂部 ROLL 按鈕 */
+        #roll-section {
+            padding: 15px; background: #222; border-bottom: 1px solid #444; text-align: center;
+        }
+        #roll-btn {
+            width: 100%; padding: 15px; background: var(--accent); color: #000;
+            border: none; border-radius: 8px; font-size: 18px; font-weight: bold;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(187, 134, 252, 0.3);
+            transition: 0.2s;
+        }
+        #roll-btn:active { transform: scale(0.98); background: #a370db; }
+        #roll-btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+
         .panel-content { padding: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; }
         
-        /* 骰子按鈕區 */
+        /* 骰子選擇區 */
         .dice-btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
         .d-btn { 
-            height: 50px; border: none; border-radius: 8px; color: white; font-weight: bold; 
+            height: 45px; border: none; border-radius: 6px; color: white; font-weight: bold; 
             cursor: pointer; font-size: 14px; background: #333; 
-            box-shadow: 0 4px 0 rgba(0,0,0,0.4); transition: all 0.1s; 
-            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.4); transition: all 0.1s; 
         }
-        .d-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.4); }
+        .d-btn:active { transform: translateY(2px); box-shadow: none; }
         .d-btn:hover { background: #444; }
         
         /* 彩色裝飾 */
@@ -55,12 +66,12 @@
         .card { background: var(--panel); padding: 15px; border-radius: 8px; border: 1px solid #333; }
         .card-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 10px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 5px; }
         
-        /* 屬性條與數值 */
+        /* 狀態條 */
         .bar-wrap { background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 4px; }
         .bar-fill { height: 100%; transition: width 0.5s ease; }
         .stat-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
         
-        /* 聊天區 */
+        /* 聊天與輸入 */
         .header-bar { padding: 10px 20px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #aaa; }
         .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 15px; line-height: 1.6; padding-bottom: 100px; }
         .msg { margin-bottom: 20px; max-width: 90%; padding: 12px 16px; border-radius: 8px; animation: fadeIn 0.3s; }
@@ -103,8 +114,8 @@
 
     <div id="setup-modal" class="modal">
         <div class="modal-box">
-            <h2 style="color:var(--accent); margin-top:0;">🚀 RPG Engine V39.5</h2>
-            <p style="color:#aaa; font-size:12px;">電子骰盤模式 (Digital Tray Mode)</p>
+            <h2 style="color:var(--accent); margin-top:0;">🚀 RPG Engine V39.6</h2>
+            <p style="color:#aaa; font-size:12px;">電子骰盤：自動整隊 & 平面鎖定</p>
             <p>請輸入世界觀：</p>
             <textarea id="world-prompt" rows="3" style="width:100%; background:#111; color:#fff; border:1px solid #444; padding:10px; border-radius:4px;" placeholder="例如：龍與地下城 D&D 5e，費倫大陸..."></textarea>
             <button class="modal-btn" onclick="startCharacterCreation()">下一步：生成角色</button>
@@ -136,21 +147,25 @@
 
     <div class="app-container">
         <aside class="sidebar">
+            <div id="roll-section">
+                <button id="roll-btn" onclick="rollAll()">🎲 擲骰 (ROLL ALL)</button>
+            </div>
+
             <div id="dice-stage">
                 <div id="debug-log">Loading...</div>
-                <div id="instruction-overlay">點擊消除骰子 (CLICK TO REMOVE)</div>
+                <div id="instruction-overlay">點擊骰子以移除 (CLICK DICE TO REMOVE)</div>
             </div>
             
             <div class="panel-content">
                 <div class="card">
-                    <div class="card-header">骰子工具箱 (DICE TRAY)</div>
+                    <div class="card-header">新增骰子 (ADD DICE)</div>
                     <div class="dice-btn-grid">
-                        <button class="d-btn btn-d4" onclick="spawnDice(4)">D4</button>
-                        <button class="d-btn btn-d6" onclick="spawnDice(6)">D6</button>
-                        <button class="d-btn btn-d8" onclick="spawnDice(8)">D8</button>
-                        <button class="d-btn btn-d10" onclick="spawnDice(10)">D10</button>
-                        <button class="d-btn btn-d12" onclick="spawnDice(12)">D12</button>
-                        <button class="d-btn btn-d20" onclick="spawnDice(20)">D20</button>
+                        <button class="d-btn btn-d4" onclick="addDice(4)">+ D4</button>
+                        <button class="d-btn btn-d6" onclick="addDice(6)">+ D6</button>
+                        <button class="d-btn btn-d8" onclick="addDice(8)">+ D8</button>
+                        <button class="d-btn btn-d10" onclick="addDice(10)">+ D10</button>
+                        <button class="d-btn btn-d12" onclick="addDice(12)">+ D12</button>
+                        <button class="d-btn btn-d20" onclick="addDice(20)">+ D20</button>
                     </div>
                 </div>
 
@@ -187,7 +202,7 @@
                 </div>
                 <div><button class="menu-btn" onclick="saveToCode()">💾</button><button class="menu-btn" onclick="resetGame()" style="color:#f55; margin-left:5px;">🗑️</button></div>
             </div>
-            <div id="chat-log" class="chat-log"><div class="msg gm">系統就緒。</div></div>
+            <div id="chat-log" class="chat-log"><div class="msg gm">系統就緒。請新增骰子並按下擲骰。</div></div>
             <div id="options-area" class="options-container"></div>
             <div class="input-area"><input type="text" id="user-input" placeholder="輸入行動..." autocomplete="off"><button class="send-btn" onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button></div>
         </main>
@@ -211,60 +226,41 @@
         // --- 3D 核心變數 ---
         let scene, camera, renderer;
         let loadedModels = {}; 
-        let activeDiceList = []; 
+        let diceList = []; // 存放場景中的骰子物件
         let raycaster, mouse;
+        let isRolling = false;
 
-        // --- 物理/圍牆設定 ---
-        const FLOOR_Y = -5;
-        const GRAVITY = -0.8;
-        const WALL_LIMIT = 6; // 圍牆範圍 (x, z)
-        const BOUNCE = 0.5;   // 彈性
-        const FRICTION = 0.95;// 摩擦 (越小停越快)
+        // 格子設定
+        const GRID_GAP_X = 5;
+        const GRID_GAP_Z = 5;
+        const MAX_PER_ROW = 2;
 
         function init3D() {
             const container = document.getElementById('dice-stage');
             const debugLog = document.getElementById('debug-log');
             
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x202020);
+            scene.background = new THREE.Color(0x1a1a1a);
             
-            // 燈光：超亮，確保看得到數字
-            const amb = new THREE.AmbientLight(0xffffff, 1.0);
+            // 燈光系統：全方位打亮，避免死角
+            const amb = new THREE.AmbientLight(0xffffff, 1.2);
             scene.add(amb);
-            const dir = new THREE.DirectionalLight(0xffffff, 1.8);
-            dir.position.set(2, 10, 2);
-            dir.castShadow = true;
-            // 擴大陰影範圍以配合放大後的骰子
-            dir.shadow.camera.left = -10;
-            dir.shadow.camera.right = 10;
-            dir.shadow.camera.top = 10;
-            dir.shadow.camera.bottom = -10;
-            scene.add(dir);
-            
-            // 補光，減少死角
-            const fill = new THREE.DirectionalLight(0xffeeb1, 0.5);
-            fill.position.set(-5, 5, -5);
-            scene.add(fill);
+            const topLight = new THREE.DirectionalLight(0xffffff, 2.0);
+            topLight.position.set(0, 20, 0);
+            scene.add(topLight);
+            const sideLight = new THREE.DirectionalLight(0xffeebb, 0.8);
+            sideLight.position.set(10, 5, 10);
+            scene.add(sideLight);
 
-            // 地板
-            const planeGeo = new THREE.PlaneGeometry(100, 100);
-            const planeMat = new THREE.ShadowMaterial({ opacity: 0.2, color: 0x000000 });
-            const plane = new THREE.Mesh(planeGeo, planeMat);
-            plane.rotation.x = -Math.PI / 2;
-            plane.position.y = FLOOR_Y;
-            plane.receiveShadow = true;
-            scene.add(plane);
-
-            // 攝影機：拉近，正上方
+            // 攝影機：正上方俯視 (Top-Down)
             camera = new THREE.PerspectiveCamera(35, container.clientWidth / container.clientHeight, 0.1, 100);
-            camera.position.set(0, 25, 0); 
+            camera.position.set(0, 30, 0); 
             camera.lookAt(0, 0, 0);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.shadowMap.enabled = true;
             container.appendChild(renderer.domElement);
 
             raycaster = new THREE.Raycaster();
@@ -273,7 +269,7 @@
 
             // 載入模型
             const loader = new GLTFLoader();
-            debugLog.innerText = "載入模型...";
+            debugLog.innerText = "載入模型庫...";
             debugLog.classList.add('show');
 
             let loadCount = 0;
@@ -283,28 +279,27 @@
                 loader.load(GLB_FILES[sides], (gltf) => {
                     const model = gltf.scene;
                     
-                    // Auto-Fit & Scale Up
+                    // Auto-Fit & Scale
                     const box = new THREE.Box3().setFromObject(model);
                     const size = box.getSize(new THREE.Vector3());
                     const center = box.getCenter(new THREE.Vector3());
-                    model.position.sub(center);
+                    model.position.sub(center); // 歸零
 
-                    // ★★★ 關鍵：放大模型！ ★★★
-                    // 原本是 2.0，現在改為 4.0 讓它在畫面上更大
                     const maxDim = Math.max(size.x, size.y, size.z);
-                    const scaleFactor = 4.0 / maxDim; 
+                    const scaleFactor = 4.0 / maxDim; // 統一放大
                     model.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
+                    // 材質優化：讓文字更清楚
                     model.traverse((child) => {
                         if (child.isMesh) {
-                            child.castShadow = true;
-                            child.receiveShadow = true;
                             if(child.material) {
+                                child.material.roughness = 0.5;
+                                child.material.metalness = 0.0; // 減少金屬反光
                                 child.material.side = THREE.DoubleSide;
-                                // 增加粗糙度，減少反光，讓字更清楚
-                                child.material.roughness = 0.6;
-                                child.material.metalness = 0.0;
-                                if(child.material.map) child.material.map.anisotropy = 16;
+                                // 強制更新幾何體，供後續計算面法線使用
+                                if (child.geometry && !child.geometry.attributes.normal) {
+                                    child.geometry.computeVertexNormals();
+                                }
                             }
                         }
                     });
@@ -315,127 +310,231 @@
                         debugLog.innerText = "READY";
                         setTimeout(() => debugLog.classList.remove('show'), 1000);
                     }
-                }, undefined, (e) => {
-                    console.error(e);
-                    debugLog.innerText = `Error: D${sides}`;
                 });
             }
 
             animate();
         }
 
+        // --- 點擊刪除邏輯 ---
         function onDiceClick(event) {
+            if (isRolling) return; // 滾動中不可點擊
+
             const container = document.getElementById('dice-stage');
             const rect = container.getBoundingClientRect();
             mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
             mouse.y = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            const meshes = activeDiceList.map(d => d.mesh);
-            const intersects = raycaster.intersectObjects(meshes, true);
+            
+            // 找出所有骰子 Group (因為 loadedModels 是 Group)
+            // 我們需要 traverse 找到 Group 層級
+            const interactableObjects = [];
+            diceList.forEach(d => {
+                d.mesh.traverse(child => {
+                    if(child.isMesh) {
+                        child.userData.parentGroup = d.mesh; // 標記父層
+                        interactableObjects.push(child);
+                    }
+                });
+            });
+
+            const intersects = raycaster.intersectObjects(interactableObjects);
 
             if (intersects.length > 0) {
-                let target = intersects[0].object;
-                while(target.parent && target.parent.type !== 'Scene') {
-                    target = target.parent;
-                }
+                const hitMesh = intersects[0].object;
+                const targetGroup = hitMesh.userData.parentGroup;
                 
-                // 刪除特效 (縮小消失)
-                const idx = activeDiceList.findIndex(d => d.mesh === target);
-                if (idx > -1) {
-                    const d = activeDiceList[idx];
-                    d.removing = true; // 標記為刪除中
+                if (targetGroup) {
+                    removeDice(targetGroup);
                 }
             }
         }
 
-        window.spawnDice = function(sides) {
+        // --- 新增骰子 ---
+        window.addDice = function(sides) {
             if (!loadedModels[sides]) return;
+            if (isRolling) return;
 
             const template = loadedModels[sides];
             const newDice = template.clone();
             
-            // 從中心上方落下
-            newDice.position.set((Math.random()-0.5)*2, 10, (Math.random()-0.5)*2);
+            // 初始化旋轉 (隨機面朝上)
+            newDice.rotation.set(Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2);
             
-            // 隨機旋轉
-            newDice.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
-
+            // 確保有幾何資料供後續貼地計算
+            newDice.userData.sides = sides;
+            
             scene.add(newDice);
-
-            activeDiceList.push({
-                mesh: newDice,
-                velocity: new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.5, // 微小水平移動
-                    -0.5, // 初始下墜
-                    (Math.random() - 0.5) * 0.5
-                ),
-                angularVel: new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.8, // 快速自轉
-                    (Math.random() - 0.5) * 0.8,
-                    (Math.random() - 0.5) * 0.8
-                ),
-                stopped: false,
-                removing: false
-            });
+            diceList.push({ mesh: newDice, sides: sides });
+            
+            // 立即執行一次貼地對齊，避免剛生出來是歪的
+            snapToNearestFace(newDice);
+            
+            repositionDice();
         };
 
-        function updatePhysics() {
-            for (let i = activeDiceList.length - 1; i >= 0; i--) {
-                const dice = activeDiceList[i];
-                const mesh = dice.mesh;
+        function removeDice(diceGroup) {
+            scene.remove(diceGroup);
+            diceList = diceList.filter(d => d.mesh !== diceGroup);
+            repositionDice();
+        }
 
-                // 處理刪除動畫
-                if (dice.removing) {
-                    mesh.scale.multiplyScalar(0.8);
-                    if (mesh.scale.x < 0.1) {
-                        scene.remove(mesh);
-                        activeDiceList.splice(i, 1);
-                    }
-                    continue;
-                }
+        // --- 自動排隊 (Grid Layout) ---
+        function repositionDice() {
+            diceList.forEach((dice, index) => {
+                const row = Math.floor(index / MAX_PER_ROW);
+                const col = index % MAX_PER_ROW;
 
-                if (dice.stopped) continue;
+                // 計算位置 (置中位移)
+                // 兩欄模式下：左邊 col=0, 右邊 col=1
+                // 我們希望整體置中。
+                // 總寬度約 = (MAX_PER_ROW - 1) * GAP
+                // 起點 x = -總寬度 / 2
+                
+                const totalW = (MAX_PER_ROW - 1) * GRID_GAP_X;
+                const startX = -totalW / 2;
+                
+                const tx = startX + col * GRID_GAP_X;
+                const tz = -5 + row * GRID_GAP_Z; // 從 z=-5 開始往下排
 
-                // 重力
-                dice.velocity.y += GRAVITY * 0.05;
-                mesh.position.add(dice.velocity);
+                dice.mesh.position.set(tx, 0, tz);
+            });
+        }
 
-                // --- 邊界碰撞 (Invisible Walls) ---
-                if (mesh.position.x > WALL_LIMIT) { mesh.position.x = WALL_LIMIT; dice.velocity.x *= -0.8; }
-                if (mesh.position.x < -WALL_LIMIT) { mesh.position.x = -WALL_LIMIT; dice.velocity.x *= -0.8; }
-                if (mesh.position.z > WALL_LIMIT) { mesh.position.z = WALL_LIMIT; dice.velocity.z *= -0.8; }
-                if (mesh.position.z < -WALL_LIMIT) { mesh.position.z = -WALL_LIMIT; dice.velocity.z *= -0.8; }
+        // --- 擲骰功能 (ROLL ALL) ---
+        window.rollAll = function() {
+            if (diceList.length === 0 || isRolling) return;
 
-                // --- 地板碰撞 ---
-                // 使用簡單的半徑判定 (假設 scale 之後半徑約為 2)
-                if (mesh.position.y <= FLOOR_Y + 2) { 
-                    mesh.position.y = FLOOR_Y + 2;
+            isRolling = true;
+            document.getElementById('roll-btn').disabled = true;
+
+            // 1. 瘋狂旋轉動畫 (1秒)
+            const duration = 1000;
+            const startTime = Date.now();
+
+            function rollLoop() {
+                const now = Date.now();
+                const elapsed = now - startTime;
+                
+                if (elapsed < duration) {
+                    diceList.forEach(d => {
+                        d.mesh.rotation.x += 0.3;
+                        d.mesh.rotation.y += 0.4;
+                        d.mesh.rotation.z += 0.2;
+                    });
+                    requestAnimationFrame(rollLoop);
+                } else {
+                    // 2. 停止並貼地 (Snap to Floor)
+                    diceList.forEach(d => {
+                        snapToNearestFace(d.mesh);
+                    });
                     
-                    // 反彈 + 摩擦
-                    dice.velocity.y *= -BOUNCE;
-                    dice.velocity.x *= FRICTION;
-                    dice.velocity.z *= FRICTION;
-                    
-                    // 旋轉減速 (模擬滾動阻力)
-                    dice.angularVel.multiplyScalar(0.92);
-
-                    // 停止判定
-                    if (Math.abs(dice.velocity.y) < 0.05 && dice.velocity.lengthSq() < 0.02) {
-                        dice.stopped = true;
-                    }
+                    isRolling = false;
+                    document.getElementById('roll-btn').disabled = false;
                 }
-
-                // 更新旋轉
-                mesh.rotation.x += dice.angularVel.x;
-                mesh.rotation.y += dice.angularVel.y;
-                mesh.rotation.z += dice.angularVel.z;
             }
+            rollLoop();
+        };
+
+        // --- ★★★ 核心演算法：貼地對齊 (Face Snapping) ★★★ ---
+        // 這個函式會尋找骰子「朝下」的面，並旋轉整個骰子，讓那個面「絕對水平」。
+        function snapToNearestFace(object) {
+            // 1. 取得所有 Mesh (有些 glb 是由多個 mesh 組成)
+            let meshes = [];
+            object.traverse(c => { if(c.isMesh) meshes.push(c); });
+            if(meshes.length === 0) return;
+
+            // 這裡簡化處理：取第一個主要 Mesh 來做計算
+            const mesh = meshes[0];
+            const geometry = mesh.geometry;
+            
+            // 確保有法線資料
+            if (!geometry.attributes.normal) geometry.computeVertexNormals();
+
+            const positionAttribute = geometry.attributes.position;
+            const normalAttribute = geometry.attributes.normal;
+            const indexAttribute = geometry.index; // 網格索引
+
+            // 世界座標下的「正下方」向量
+            const down = new THREE.Vector3(0, -1, 0);
+            
+            let bestFaceNormal = new THREE.Vector3();
+            let maxDot = -Infinity;
+
+            // 2. 遍歷所有面 (Face)，找出法線最接近 (0,-1,0) 的那個面
+            // 這邊用隨機採樣或遍歷所有面。為了效能，我們遍歷所有面。
+            
+            // 矩陣轉換：把局部法線轉為世界法線
+            const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
+
+            if (indexAttribute) {
+                // 有索引的幾何體
+                for (let i = 0; i < indexAttribute.count; i += 3) {
+                    const a = indexAttribute.getX(i);
+                    const b = indexAttribute.getX(i+1);
+                    const c = indexAttribute.getX(i+2);
+                    
+                    // 取得面的法線 (簡單取其中一個頂點的法線，或是計算三角面法線)
+                    // 計算三角面法線比較準確
+                    const vA = new THREE.Vector3().fromBufferAttribute(positionAttribute, a);
+                    const vB = new THREE.Vector3().fromBufferAttribute(positionAttribute, b);
+                    const vC = new THREE.Vector3().fromBufferAttribute(positionAttribute, c);
+                    
+                    // Face Normal calculation
+                    const cb = new THREE.Vector3().subVectors(vC, vB);
+                    const ab = new THREE.Vector3().subVectors(vA, vB);
+                    const faceNormal = new THREE.Vector3().crossVectors(cb, ab).normalize();
+                    
+                    // 轉到世界座標
+                    faceNormal.applyMatrix3(normalMatrix).normalize();
+
+                    const dot = faceNormal.dot(down);
+                    if (dot > maxDot) {
+                        maxDot = dot;
+                        bestFaceNormal.copy(faceNormal);
+                    }
+                }
+            } else {
+                // 無索引 (Non-indexed)，每3個點一組
+                const count = positionAttribute.count;
+                for (let i = 0; i < count; i += 3) {
+                    const vA = new THREE.Vector3().fromBufferAttribute(positionAttribute, i);
+                    const vB = new THREE.Vector3().fromBufferAttribute(positionAttribute, i+1);
+                    const vC = new THREE.Vector3().fromBufferAttribute(positionAttribute, i+2);
+                    
+                    const cb = new THREE.Vector3().subVectors(vC, vB);
+                    const ab = new THREE.Vector3().subVectors(vA, vB);
+                    const faceNormal = new THREE.Vector3().crossVectors(cb, ab).normalize();
+                    
+                    faceNormal.applyMatrix3(normalMatrix).normalize();
+
+                    const dot = faceNormal.dot(down);
+                    if (dot > maxDot) {
+                        maxDot = dot;
+                        bestFaceNormal.copy(faceNormal);
+                    }
+                }
+            }
+
+            // 3. 計算旋轉修正
+            // 我們需要把 object 旋轉，使得 bestFaceNormal 變成 (0, -1, 0)
+            // 使用 Quaternion 來旋轉
+            
+            // 注意：bestFaceNormal 是目前的世界法線。
+            // 我們想要轉動 object，讓這個法線對齊 down。
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(bestFaceNormal, down);
+            
+            // 應用旋轉 (在世界座標中)
+            object.applyQuaternion(quaternion);
+            
+            // 4. 對齊之後，D4 這種角錐體可能會看起來是「倒著」的 (尖端朝下) 還是「正的」？
+            // 演算法是把「面」貼地，所以 D4 會是平面朝下，尖端朝上，這符合物理。
+            // D20、D12 等也是面朝下，對面的數字朝上。
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            updatePhysics();
             renderer.render(scene, camera);
         }
 
@@ -443,6 +542,7 @@
     </script>
 
     <script>
+        // --- 既有 RPG 邏輯 (保持不變) ---
         let confirmedModel = ""; 
         let conversationHistory = []; 
         let state = { hp: 10, maxHp: 10, mp: 10, maxMp: 10, mpLabel: "MP", san: 100, maxSan: 100, stats: { str:10, dex:10, con:10, int:10, wis:10, cha:10 }, inventory: [], npcs: [], time: "初始", weather: "未知", location: "起始點", worldPrompt: "" };
