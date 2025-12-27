@@ -2,581 +2,581 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V44 (Face-to-Camera Ultimate)</title>
+    <title>RPG Engine Final (Google Style 2D)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
-
     <style>
-        :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
-
-        .app-container { display: flex; height: 100%; }
-        .sidebar { width: 400px; background: #181818; border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
-        .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
-
-        /* 3D 舞台：純黑背景，強調主體 */
-        #dice-stage { 
-            width: 100%; height: 320px; 
-            background: #111; /* 純黑背景提升對比度 */
-            position: relative; overflow: hidden; border-bottom: 1px solid #333; 
-            cursor: pointer;
+        /* --- 全局設定 --- */
+        :root { 
+            --bg: #202124; --panel: #303134; --text: #e8eaed; 
+            --accent: #8ab4f8; --border: #3c4043;
+            /* 骰子顏色 (Google 配色) */
+            --d4-color: #34a853; --d6-color: #2ab7ca; --d8-color: #a142f4;
+            --d10-color: #f43f5e; --d12-color: #ea4335; --d20-color: #fb8c00;
         }
-        
-        #instruction-overlay { 
-            position: absolute; bottom: 10px; width: 100%; text-align: center; 
-            color: rgba(255,255,255,0.2); font-size: 10px; pointer-events: none; 
-            letter-spacing: 2px;
+        body { margin: 0; font-family: 'Roboto', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; }
+
+        /* --- 側邊欄 (左) --- */
+        .sidebar { 
+            width: 400px; background: #292a2d; border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; flex-shrink: 0; 
         }
 
-        .panel-content { padding: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; }
-        
-        .card { background: var(--panel); padding: 12px; border-radius: 8px; border: 1px solid #333; }
-        
+        .panel-content { padding: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 15px; }
+
+        /* 通用卡片 */
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
         .card-header { 
+            padding: 10px 15px; background: rgba(0,0,0,0.2); font-size: 13px; color: #9aa0a6; 
+            font-weight: bold; border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center;
-            font-size: 13px; color: #aaa; margin-bottom: 8px; font-weight: bold;
         }
 
-        .mini-roll-btn {
-            background: var(--accent); color: #000; border: none; 
-            padding: 5px 20px; border-radius: 20px; font-size: 13px; font-weight: bold; 
-            cursor: pointer; transition: 0.2s; box-shadow: 0 0 10px rgba(187, 134, 252, 0.2);
+        /* --- Google 風格骰子區 --- */
+        #dice-container {
+            background: #e8eaed; /* Google 淺色背景 */
+            padding: 20px;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
-        .mini-roll-btn:hover { background: #fff; box-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
-        .mini-roll-btn:disabled { background: #444; color: #888; cursor: not-allowed; box-shadow: none; }
 
-        .dice-btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .d-btn { 
-            height: 40px; border: 1px solid #444; border-radius: 4px; color: #ddd; 
-            font-weight: bold; cursor: pointer; font-size: 13px; background: #2a2a2a; 
-            transition: 0.1s;
+        /* 顯示骰子的區域 */
+        #active-dice-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            width: 100%;
         }
-        .d-btn:hover { background: #333; border-color: var(--accent); color: #fff; }
-        .d-btn:active { transform: translateY(1px); }
 
-        /* UI Elements */
-        .bar-wrap { background: #333; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
-        .bar-fill { height: 100%; transition: width 0.5s ease; }
-        .stat-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 2px; }
-        .attr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .attr-main { text-align: center; background: #2a2a2a; padding: 5px; border-radius: 4px; }
-        .attr-val { font-size: 16px; font-weight: bold; color: var(--accent); }
-        .attr-lbl { font-size: 11px; color: #888; }
+        /* 骰子本體 (純 CSS 繪製形狀) */
+        .die {
+            width: 60px; height: 60px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: bold; color: white;
+            cursor: pointer; user-select: none;
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .die:hover { transform: scale(1.1); }
+        .die.rolling { animation: shake 0.5s infinite; }
 
-        .header-bar { padding: 10px 20px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #aaa; }
-        .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 15px; line-height: 1.6; }
-        .msg { margin-bottom: 15px; max-width: 90%; padding: 10px 14px; border-radius: 6px; }
-        .msg.gm { background: #252525; border-left: 3px solid var(--accent); color: #ddd; }
-        .msg.user { background: #3d2c5e; color: #fff; margin-left: auto; text-align: right; }
+        /* 形狀定義 */
+        .die-d4 { 
+            background: var(--d4-color); 
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%); 
+            padding-top: 10px; height: 50px; /* 三角形修正 */
+        }
+        .die-d6 { background: var(--d6-color); border-radius: 4px; }
+        .die-d8 { 
+            background: var(--d8-color); 
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); 
+        }
+        .die-d10 { 
+            background: var(--d10-color); 
+            clip-path: polygon(50% 0%, 100% 38%, 50% 100%, 0% 38%); 
+        }
+        .die-d12 { 
+            background: var(--d12-color); 
+            clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%); 
+        }
+        .die-d20 { 
+            background: var(--d20-color); 
+            clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%); 
+        }
+
+        /* 總計顯示 */
+        #dice-total {
+            position: absolute; bottom: 10px; right: 20px;
+            font-size: 28px; color: #202124; font-weight: bold;
+        }
+
+        /* 骰子控制列 */
+        .dice-controls {
+            display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;
+            padding: 10px; background: white; border-top: 1px solid #ccc;
+        }
+        .add-die-btn {
+            width: 35px; height: 35px; border: none; color: white;
+            font-size: 12px; font-weight: bold; cursor: pointer;
+            border-radius: 4px; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-green { background: var(--d4-color); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); height: 30px; }
+        .btn-blue { background: var(--d6-color); }
+        .btn-purple { background: var(--d8-color); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+        .btn-pink { background: var(--d10-color); clip-path: polygon(50% 0%, 100% 38%, 50% 100%, 0% 38%); }
+        .btn-red { background: var(--d12-color); clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%); }
+        .btn-orange { background: var(--d20-color); clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%); }
+
+        #roll-btn {
+            background: #1a73e8; color: white; border: none;
+            padding: 8px 20px; border-radius: 4px; font-weight: bold;
+            cursor: pointer; margin-left: 10px;
+        }
+        #roll-btn:hover { background: #1557b0; }
+
+        /* --- 人物關係與屬性 --- */
+        .npc-item {
+            padding: 8px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between;
+        }
+        .npc-name { color: var(--accent); font-weight: bold; }
+        .npc-rel { color: #9aa0a6; font-size: 12px; }
+
+        /* --- 屬性調整器 (手動配點) --- */
+        .attr-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 5px 0; border-bottom: 1px solid #3c4043;
+        }
+        .attr-val-box { display: flex; align-items: center; gap: 10px; }
+        .circle-btn {
+            width: 20px; height: 20px; border-radius: 50%; border: 1px solid #5f6368;
+            background: #303134; color: white; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+
+        /* --- 主內容 (右) --- */
+        .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); }
         
-        .options-container { padding: 10px 15px; background: #181818; display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid #333; }
-        .opt-btn { background: #2a2a2a; color: #bbb; border: 1px solid #444; padding: 6px 12px; border-radius: 15px; cursor: pointer; font-size: 13px; transition: 0.2s; text-align: left; }
-        .input-area { padding: 15px; background: #181818; display: flex; gap: 10px; }
-        input[type="text"] { flex: 1; padding: 10px 15px; background: #252525; border: 1px solid #444; color: white; border-radius: 20px; outline: none; }
-        .send-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; }
+        .header-bar { 
+            padding: 10px 20px; border-bottom: 1px solid var(--border); 
+            display: flex; justify-content: space-between; align-items: center; 
+            font-size: 14px; color: #9aa0a6; background: #292a2d;
+        }
+        .header-btn { background: none; border: none; color: #9aa0a6; cursor: pointer; margin-left: 10px; }
+        .header-btn:hover { color: white; }
 
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
-        .modal-box { background: #252525; width: 450px; padding: 30px; border-radius: 12px; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .modal-btn { width: 100%; padding: 12px; background: var(--accent); color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        #chat-log { flex: 1; padding: 20px; overflow-y: auto; font-size: 15px; line-height: 1.6; }
+        .msg { margin-bottom: 15px; max-width: 85%; padding: 12px 16px; border-radius: 8px; }
+        .msg.gm { background: #3c4043; border-left: 4px solid var(--accent); }
+        .msg.user { background: #185abc; color: white; margin-left: auto; }
+
+        .input-area { padding: 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: #292a2d; }
+        input[type="text"] { 
+            flex: 1; padding: 12px; background: #3c4043; border: 1px solid #5f6368; 
+            color: white; border-radius: 24px; outline: none; 
+        }
+        .send-btn { 
+            width: 45px; height: 45px; border-radius: 50%; background: var(--accent); 
+            border: none; cursor: pointer; color: #000; font-size: 18px; 
+        }
+
+        /* Modal */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; }
+        .modal-box { background: #303134; width: 500px; padding: 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .modal-btn { width: 100%; padding: 12px; background: var(--accent); border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; }
         .hidden { display: none !important; }
-        
-        #debug-log { position: absolute; top: 5px; left: 5px; color: #81c995; background: rgba(0,0,0,0.8); padding: 4px; font-size: 10px; pointer-events: none; border-radius: 4px; opacity: 0; }
-        #debug-log.show { opacity: 1; }
+
+        @keyframes shake {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(10deg); }
+            50% { transform: rotate(-10deg); }
+            75% { transform: rotate(5deg); }
+            100% { transform: rotate(0deg); }
+        }
     </style>
 </head>
 <body>
 
     <div id="setup-modal" class="modal">
         <div class="modal-box">
-            <h2 style="color:var(--accent); margin-top:0;">RPG Engine V44</h2>
-            <p style="color:#aaa; font-size:12px;">Ultimate Visibility Edition</p>
-            <p>世界觀設定：</p>
-            <textarea id="world-prompt" rows="3" style="width:100%; background:#111; color:#fff; border:1px solid #444; padding:10px; border-radius:4px;" placeholder="例如：龍與地下城 D&D 5e..."></textarea>
-            <button class="modal-btn" onclick="startCharacterCreation()">開始冒險</button>
-            <div style="margin-top:20px; text-align:right;">
-                <button style="background:none; border:none; color:#888; font-size:12px; cursor:pointer;" onclick="loadFromCode()">讀取進度</button>
+            <h2 style="color:var(--accent); margin-top:0;">🎲 RPG 啟動器</h2>
+            
+            <label style="display:block; margin-bottom:5px; color:#aaa;">Gemini API Key</label>
+            <input type="password" id="api-key-input" style="width:100%; padding:10px; margin-bottom:15px; background:#202124; border:1px solid #555; color:white;">
+
+            <label style="display:block; margin-bottom:5px; color:#aaa;">世界觀設定</label>
+            <textarea id="world-prompt" rows="3" style="width:100%; padding:10px; background:#202124; border:1px solid #555; color:white;" placeholder="例如：克蘇魯神話、修仙世界..."></textarea>
+            
+            <div style="margin-top:20px; border-top:1px solid #555; padding-top:15px;">
+                <label style="color:#aaa;">讀取存檔碼 (Base64)</label>
+                <input type="text" id="load-code" placeholder="貼上存檔碼..." style="width:100%; padding:10px; background:#202124; border:1px solid #555; color:white; margin-bottom:10px;">
+                <button class="modal-btn" style="background:#555; color:white;" onclick="loadGame()">📂 讀取舊檔</button>
             </div>
+
+            <button class="modal-btn" onclick="goToStats()">➡️ 下一步：屬性配點</button>
         </div>
     </div>
 
-    <div id="char-modal" class="modal hidden">
+    <div id="stats-modal" class="modal hidden">
         <div class="modal-box">
-            <h2 style="color:var(--success); margin-top:0;">屬性生成</h2>
-            <div style="text-align:center; padding:20px; color:#fff;" id="derived-stats">計算中...</div>
-            <button class="modal-btn" onclick="confirmStart()">確認並開始</button>
+            <h2 style="color:var(--success);">📊 屬性分配</h2>
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <button class="modal-btn" style="width:48%; background:#555; color:white;" onclick="randomStats()">🎲 隨機生成 (72-80)</button>
+                <div style="color:#aaa; display:flex; align-items:center;">剩餘點數: <span id="points-left" style="color:white; font-weight:bold; margin-left:5px;">0</span></div>
+            </div>
+            
+            <div id="stats-editor">
+                </div>
+
+            <button class="modal-btn" onclick="startGame()">✅ 開始冒險</button>
         </div>
     </div>
 
     <div class="app-container">
         <aside class="sidebar">
-            <div id="dice-stage">
-                <div id="debug-log">Initializing High-Res Renderer...</div>
-                <div id="instruction-overlay">點擊骰子移除 (CLICK TO REMOVE)</div>
-            </div>
             
+            <div class="card" style="border-radius:0; border-left:none; border-right:none; border-top:none;">
+                <div id="dice-container">
+                    <div id="active-dice-area">
+                        <div style="color:#888; font-size:12px;">點擊下方按鈕加入骰子</div>
+                    </div>
+                    <div id="dice-total">總計: 0</div>
+                </div>
+                <div class="dice-controls">
+                    <button class="add-die-btn btn-green" onclick="addDie(4)">4</button>
+                    <button class="add-die-btn btn-blue" onclick="addDie(6)">6</button>
+                    <button class="add-die-btn btn-purple" onclick="addDie(8)">8</button>
+                    <button class="add-die-btn btn-pink" onclick="addDie(10)">10</button>
+                    <button class="add-die-btn btn-red" onclick="addDie(12)">12</button>
+                    <button class="add-die-btn btn-orange" onclick="addDie(20)">20</button>
+                    <button id="roll-btn" onclick="rollDice()">擲出骰子</button>
+                </div>
+            </div>
+
             <div class="panel-content">
                 <div class="card">
-                    <div class="card-header">
-                        <span>骰子盤 (Max 2)</span>
-                        <button id="roll-btn" class="mini-roll-btn" onclick="rollAll()">擲出骰子</button>
-                    </div>
-                    <div class="dice-btn-grid">
-                        <button class="d-btn" onclick="addDice(4)">+ D4</button>
-                        <button class="d-btn" onclick="addDice(6)">+ D6</button>
-                        <button class="d-btn" onclick="addDice(8)">+ D8</button>
-                        <button class="d-btn" onclick="addDice(10)">+ D10</button>
-                        <button class="d-btn" onclick="addDice(12)">+ D12</button>
-                        <button class="d-btn" onclick="addDice(20)">+ D20</button>
+                    <div class="card-header">基礎屬性</div>
+                    <div style="padding:15px;" id="disp-stats">
+                        </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">人物關係 (Relationships)</div>
+                    <div id="npc-list" style="padding:10px;">
+                        <div style="color:#666; font-style:italic;">尚無記錄</div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <div class="card-header">狀態</div>
-                    <div class="stat-row"><span>HP</span> <span id="hp-txt">--/--</span></div>
-                    <div class="bar-wrap"><div id="hp-bar" class="bar-fill" style="width:100%; background:#cf6679;"></div></div>
-                    <div class="stat-row"><span id="mp-label">MP</span> <span id="mp-txt">--/--</span></div>
-                    <div class="bar-wrap"><div id="mp-bar" class="bar-fill" style="width:100%; background:#03dac6;"></div></div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">屬性</div>
-                    <div class="attr-grid">
-                        <div class="attr-main"><div class="attr-lbl">STR</div><div id="disp-str" class="attr-val">--</div></div>
-                        <div class="attr-main"><div class="attr-lbl">DEX</div><div id="disp-dex" class="attr-val">--</div></div>
-                        <div class="attr-main"><div class="attr-lbl">CON</div><div id="disp-con" class="attr-val">--</div></div>
-                        <div class="attr-main"><div class="attr-lbl">INT</div><div id="disp-int" class="attr-val">--</div></div>
-                        <div class="attr-main"><div class="attr-lbl">WIS</div><div id="disp-wis" class="attr-val">--</div></div>
-                        <div class="attr-main"><div class="attr-lbl">CHA</div><div id="disp-cha" class="attr-val">--</div></div>
-                    </div>
+                    <div class="card-header">物品欄</div>
+                    <div id="inventory-list" style="padding:10px; color:#aaa;">無</div>
                 </div>
             </div>
         </aside>
-        
+
         <main class="main-content">
             <div class="header-bar">
-                <span id="location-display"><i class="fas fa-map-marker-alt"></i> 虛空</span>
-                <span id="time-display">初始</span>
-                <button style="background:none; border:none; color:#f55; cursor:pointer; margin-left:10px;" onclick="resetGame()"><i class="fas fa-trash"></i></button>
+                <div>
+                    <span id="loc-disp"><i class="fas fa-map-marker-alt"></i> 虛空</span> | 
+                    <span id="time-disp">初始</span>
+                </div>
+                <div>
+                    <button class="header-btn" title="存檔" onclick="saveGame()"><i class="fas fa-save"></i></button>
+                    <button class="header-btn" title="重置" onclick="resetGame()" style="color:#f28b82;"><i class="fas fa-trash"></i></button>
+                </div>
             </div>
-            <div id="chat-log" class="chat-log"><div class="msg gm">系統就緒。</div></div>
-            <div id="options-area" class="options-container"></div>
-            <div class="input-area"><input type="text" id="user-input" placeholder="輸入行動..." autocomplete="off"><button class="send-btn" onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button></div>
+
+            <div id="chat-log">
+                <div class="msg gm">歡迎使用 RPG Engine (Google Style)。<br>請先完成設定。</div>
+            </div>
+
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="接下來要做什麼？" onkeypress="if(event.key==='Enter') sendMsg()">
+                <button class="send-btn" onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
+            </div>
         </main>
     </div>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-
-        window.USER_API_KEY = ""; 
-        
-        const GLB_FILES = {
-            4:  "./d4_low.glb",
-            6:  "./d6_low.glb",
-            8:  "./d8_low.glb",
-            10: "./d10_low.glb",
-            12: "./d12_low.glb",
-            20: "./d20_low.glb"
-        };
-
-        // ★★★ V44 視覺參數：極致清晰 ★★★
-        const CAMERA_Y = 15; 
-        const FOV = 15; // 超長焦鏡頭：大幅壓縮空間，讓物體看起來更大更正
-        const SPACING = 4.0; 
-        
-        let scene, camera, renderer;
-        let loadedModels = {}; 
-        let diceList = []; 
-        let raycaster, mouse;
-        let isRolling = false;
-
-        function init3D() {
-            const container = document.getElementById('dice-stage');
-            const debugLog = document.getElementById('debug-log');
-            
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x111111); 
-            
-            // --- 燈光系統：高對比攝影棚光 ---
-            const amb = new THREE.AmbientLight(0xffffff, 0.7);
-            scene.add(amb);
-            
-            // 主光：正上方偏前，照亮數字面
-            const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
-            keyLight.position.set(0, 20, 5); 
-            scene.add(keyLight);
-            
-            // 輪廓光：讓骰子邊緣銳利
-            const rimLight = new THREE.DirectionalLight(0x8ab4f8, 1.0);
-            rimLight.position.set(0, 5, -10);
-            scene.add(rimLight);
-
-            // --- 攝影機 ---
-            camera = new THREE.PerspectiveCamera(FOV, container.clientWidth / container.clientHeight, 0.1, 100);
-            camera.position.set(0, CAMERA_Y, 0); 
-            camera.lookAt(0, 0, 0);
-
-            // --- 渲染器 (關鍵設定) ---
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            
-            // ★ 強制開啟最高解析度 (解決模糊問題) ★
-            renderer.setPixelRatio(window.devicePixelRatio); 
-            renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.shadowMap.enabled = true;
-            container.appendChild(renderer.domElement);
-
-            raycaster = new THREE.Raycaster();
-            mouse = new THREE.Vector2();
-            container.addEventListener('pointerdown', onDiceClick);
-
-            // --- 模型載入 ---
-            const loader = new GLTFLoader();
-            debugLog.innerText = "Loading High-Res Textures...";
-            debugLog.classList.add('show');
-
-            let loadCount = 0;
-            const total = Object.keys(GLB_FILES).length;
-
-            for (let sides in GLB_FILES) {
-                loader.load(GLB_FILES[sides], (gltf) => {
-                    const model = gltf.scene;
-                    
-                    // 1. 歸零中心
-                    const box = new THREE.Box3().setFromObject(model);
-                    const center = box.getCenter(new THREE.Vector3());
-                    model.position.sub(center); 
-
-                    // 2. 尺寸標準化 (統一放大)
-                    const size = box.getSize(new THREE.Vector3());
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    // 目標尺寸：大！讓它填滿格子
-                    let targetSize = 3.5; 
-                    if(sides == 4) targetSize = 4.5; // D4 強制特大
-                    if(sides == 20) targetSize = 3.2; 
-
-                    const scale = targetSize / maxDim;
-                    model.scale.set(scale, scale, scale);
-
-                    // 3. 材質極致優化
-                    const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
-                    
-                    model.traverse((child) => {
-                        if (child.isMesh) {
-                            if(child.material) {
-                                child.material.side = THREE.DoubleSide;
-                                child.material.roughness = 0.4; // 不反光，保證數字清晰
-                                child.material.metalness = 0.0;
-                                
-                                // ★ 強制開啟各向異性過濾 (解決貼圖模糊的關鍵) ★
-                                if(child.material.map) {
-                                    child.material.map.anisotropy = maxAnisotropy;
-                                    child.material.map.minFilter = THREE.LinearMipmapLinear;
-                                    child.material.map.needsUpdate = true;
-                                }
-                                
-                                // 重算並平滑法線
-                                if (child.geometry) {
-                                    child.geometry.computeVertexNormals();
-                                }
-                            }
-                        }
-                    });
-
-                    loadedModels[sides] = model;
-                    loadCount++;
-                    if(loadCount === total) {
-                        debugLog.innerText = "READY";
-                        setTimeout(() => debugLog.classList.remove('show'), 1000);
-                    }
-                });
-            }
-
-            animate();
-        }
-
-        // --- 點擊刪除 ---
-        function onDiceClick(event) {
-            if (isRolling) return; 
-            const container = document.getElementById('dice-stage');
-            const rect = container.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            
-            const candidates = [];
-            diceList.forEach(d => { d.mesh.traverse(child => { if(child.isMesh) candidates.push(child); }); });
-            const intersects = raycaster.intersectObjects(candidates);
-
-            if (intersects.length > 0) {
-                let target = intersects[0].object;
-                while (target.parent && target.parent !== scene) target = target.parent;
-                const foundDice = diceList.find(d => d.mesh === target);
-                if (foundDice) removeDice(foundDice);
-            }
-        }
-
-        // --- 新增骰子 ---
-        window.addDice = function(sides) {
-            if (!loadedModels[sides]) return;
-            if (isRolling) return;
-
-            if (diceList.length >= 2) removeDice(diceList[0]);
-
-            const template = loadedModels[sides];
-            const newDice = template.clone();
-            
-            // 初始：直接正面朝上
-            snapToCamera(newDice, sides);
-
-            scene.add(newDice);
-            diceList.push({ mesh: newDice, sides: sides });
-            updateLayout();
-        };
-
-        function removeDice(diceObj) {
-            scene.remove(diceObj.mesh);
-            diceList = diceList.filter(d => d !== diceObj);
-            updateLayout();
-        }
-
-        function updateLayout() {
-            if (diceList.length === 0) return;
-            if (diceList.length === 1) {
-                diceList[0].mesh.position.set(0, 0, 0);
-            } else {
-                diceList[0].mesh.position.set(-SPACING, 0, 0);
-                diceList[1].mesh.position.set(SPACING, 0, 0);
-            }
-        }
-
-        // --- 擲骰 ---
-        window.rollAll = function() {
-            if (diceList.length === 0 || isRolling) return;
-
-            isRolling = true;
-            const btn = document.getElementById('roll-btn');
-            btn.disabled = true;
-            btn.innerText = "...";
-
-            const duration = 600;
-            const startTime = Date.now();
-
-            function rollLoop() {
-                const now = Date.now();
-                const elapsed = now - startTime;
-                
-                if (elapsed < duration) {
-                    diceList.forEach(d => {
-                        // 瘋狂自轉
-                        d.mesh.rotation.x += 0.5;
-                        d.mesh.rotation.y += 0.5;
-                        d.mesh.rotation.z += 0.3;
-                    });
-                    requestAnimationFrame(rollLoop);
-                } else {
-                    // ★ 停止時，強制面對鏡頭 ★
-                    diceList.forEach(d => {
-                        snapToCamera(d.mesh, d.sides);
-                    });
-                    
-                    isRolling = false;
-                    btn.disabled = false;
-                    btn.innerText = "🎲 擲出骰子";
-                }
-            }
-            rollLoop();
-        };
-
-        // --- ★★★ 核心：面對鏡頭演算法 (Face-to-Camera) ★★★ ---
-        function snapToCamera(object, sides) {
-            let mesh = null;
-            object.traverse(c => { if(c.isMesh) mesh = c; });
-            if(!mesh) return;
-
-            const geometry = mesh.geometry;
-            const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
-            const posAttr = geometry.attributes.position;
-            const count = posAttr.count;
-
-            // 目標：直接對準鏡頭向量 (0, 1, 0) 因為我們是俯視
-            // 無論是 D4 還是 D20，我們都希望顯示數字的那個面，其法線是朝上的
-            const cameraDir = new THREE.Vector3(0, 1, 0);
-            
-            let bestFaceNormal = new THREE.Vector3();
-            let maxDot = -Infinity;
-
-            for (let i = 0; i < count; i += 3) {
-                const vA = new THREE.Vector3().fromBufferAttribute(posAttr, i);
-                const vB = new THREE.Vector3().fromBufferAttribute(posAttr, i+1);
-                const vC = new THREE.Vector3().fromBufferAttribute(posAttr, i+2);
-                
-                const cb = new THREE.Vector3().subVectors(vC, vB);
-                const ab = new THREE.Vector3().subVectors(vA, vB);
-                const faceNormal = new THREE.Vector3().crossVectors(cb, ab).normalize();
-                
-                faceNormal.applyMatrix3(normalMatrix).normalize();
-
-                const dot = faceNormal.dot(cameraDir);
-                if (dot > maxDot) {
-                    maxDot = dot;
-                    bestFaceNormal.copy(faceNormal);
-                }
-            }
-
-            // 計算旋轉量，把那個面轉到正上方
-            const quaternion = new THREE.Quaternion().setFromUnitVectors(bestFaceNormal, cameraDir);
-            object.applyQuaternion(quaternion);
-
-            // --- D4 特殊修正 ---
-            // 上一步已經把數字面轉到水平朝上了。
-            // 但 D4 是三角形，可能尖端朝左或朝右。
-            // 我們希望尖端朝下 (或朝上)，看起來正一點。
-            if (sides == 4) {
-                // 這裡我們不再依賴運氣，直接強制重置 Y 軸旋轉為 0
-                // 這樣每次停下來，三角形的方向都是一致的
-                // 根據模型不同，可能需要加 PI (180度)
-                // 這裡預設轉 180 度讓平底在下方視覺比較穩
-                object.rotation.y = Math.PI; 
-            }
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }
-
-        init3D();
-    </script>
-
     <script>
-        let confirmedModel = ""; 
-        let conversationHistory = []; 
-        let state = { hp: 10, maxHp: 10, mp: 10, maxMp: 10, mpLabel: "MP", san: 100, maxSan: 100, stats: { str:10, dex:10, con:10, int:10, wis:10, cha:10 }, inventory: [], npcs: [], time: "初始", weather: "未知", location: "起始點", worldPrompt: "" };
-
-        window.onload = function() {
-            const cachedKey = localStorage.getItem('my_gemini_key_v1');
-            if (cachedKey) window.USER_API_KEY = cachedKey;
-            const saved = localStorage.getItem('rpg_autosave_v39_1');
-            if (saved && confirm("偵測到存檔，要繼續嗎？")) loadGameData(JSON.parse(saved));
+        // --- 變數 ---
+        let apiKey = "";
+        let conversationHistory = [];
+        let diceBag = [];
+        let state = {
+            stats: { STR:10, DEX:10, CON:10, INT:10, WIS:10, CHA:10 },
+            npcs: [],
+            inventory: [],
+            location: "未知",
+            time: "未知"
         };
 
-        function startCharacterCreation() {
-            state.worldPrompt = document.getElementById('world-prompt').value.trim() || "D&D 5e";
-            if(!window.USER_API_KEY) {
-                const inputKey = prompt("請輸入您的 Gemini API Key:", "");
-                if(inputKey) {
-                    window.USER_API_KEY = inputKey;
-                    localStorage.setItem('my_gemini_key_v1', inputKey);
-                } else {
-                    alert("需要 API Key 才能運作喔！");
-                    return;
-                }
-            }
-            randomizeStats();
+        // --- 1. 系統初始化 & 存讀檔 ---
+        window.onload = function() {
+            const savedKey = localStorage.getItem('gemini_key');
+            if(savedKey) document.getElementById('api-key-input').value = savedKey;
+        };
+
+        function goToStats() {
+            const k = document.getElementById('api-key-input').value.trim();
+            if(!k) return alert("請輸入 API Key");
+            apiKey = k;
+            localStorage.setItem('gemini_key', k);
+            
             document.getElementById('setup-modal').classList.add('hidden');
-            document.getElementById('char-modal').classList.remove('hidden');
+            document.getElementById('stats-modal').classList.remove('hidden');
+            renderStatsEditor();
         }
 
-        function randomizeStats() {
-            let min = 72, max = 80;
-            const target = Math.floor(Math.random()*(max-min+1))+min;
-            const keys=['str','dex','con','int','wis','cha'];
-            keys.forEach(k=>state.stats[k]=3);
-            let pts = target - 18;
-            while(pts>0){ const k=keys[Math.floor(Math.random()*6)]; if(state.stats[k]<18){state.stats[k]++; pts--;} }
-            document.getElementById('derived-stats').innerText = `總屬性點: ${target}`;
+        function saveGame() {
+            const data = JSON.stringify({ state, history: conversationHistory });
+            const code = btoa(encodeURIComponent(data));
+            prompt("請複製存檔碼：", code);
         }
 
-        async function confirmStart() {
-            document.getElementById('char-modal').classList.add('hidden');
-            updateUI();
-            addMsg("sys","世界構建中...");
-            await detectModelAndStart();
-        }
-
-        async function detectModelAndStart() {
+        function loadGame() {
             try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
-                const data = await res.json();
-                const m = (data.models||[]).find(x=>x.name.includes("gemini-1.5-flash")||x.name.includes("gemini-pro"));
-                if(!m) throw new Error("API Key 無效或額度不足");
-                confirmedModel = m.name.replace("models/","");
+                const code = document.getElementById('load-code').value.trim();
+                const json = decodeURIComponent(atob(code));
+                const data = JSON.parse(json);
+                state = data.state;
+                conversationHistory = data.history;
                 
-                const sysPrompt = `你是一位 D&D 5e DM。世界觀：${state.worldPrompt}。請簡潔開場。回應結尾附帶: \`\`\`json {"hp_change":0, "mp_change":0, "san_change":0, "mp_label":"法術位", "time":"...", "weather":"...", "location":"...", "add_item":"", "remove_item":"", "add_npc":"", "story_options":["A...","B..."]} \`\`\``;
+                // 恢復 UI
+                updateHUD();
+                renderChatHistory();
+                document.getElementById('setup-modal').classList.add('hidden');
                 
-                conversationHistory = [{role:"user", parts:[{text:sysPrompt}]}];
-                await callAI(`請開始遊戲。`);
-            } catch(e) { alert("啟動失敗: " + e.message); }
-        }
-
-        async function callAI(txt) {
-            const log = document.getElementById('chat-log');
-            log.innerHTML += `<div id="load-anim" class="msg gm">...</div>`; log.scrollTop=log.scrollHeight;
-            conversationHistory.push({role:"user", parts:[{text:txt}]});
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${confirmedModel}:generateContent?key=${window.USER_API_KEY}`, {
-                    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:conversationHistory})
-                });
-                const data = await res.json();
-                document.getElementById('load-anim').remove();
-                const aiTxt = data.candidates[0].content.parts[0].text;
-                conversationHistory.push({role:"model", parts:[{text:aiTxt}]});
-                processAIResponse(aiTxt);
-            } catch(e) { document.getElementById('load-anim')?.remove(); addMsg("sys","Error: 請檢查網路或 Key"); }
-        }
-
-        function processAIResponse(txt) {
-            const json = txt.match(/```json\s*([\s\S]*?)\s*```/);
-            if(json) {
-                try {
-                    const u = JSON.parse(json[1]);
-                    if(u.hp_change) state.hp=Math.max(0,Math.min(state.maxHp,state.hp+u.hp_change));
-                    if(u.time) state.time=u.time; if(u.location) state.location=u.location;
-                    if(u.story_options) renderOptions(u.story_options);
-                    localStorage.setItem('rpg_autosave_v39_1', JSON.stringify({state, history:conversationHistory}));
-                    txt = txt.replace(json[0],"");
-                } catch(e){}
+                // 如果沒有 Key，還是要問一下
+                if(!localStorage.getItem('gemini_key')) {
+                    const k = prompt("讀檔成功，但需要 API Key 才能繼續：");
+                    if(k) { apiKey = k; localStorage.setItem('gemini_key', k); }
+                } else {
+                    apiKey = localStorage.getItem('gemini_key');
+                }
+            } catch(e) {
+                alert("存檔碼無效或損壞");
             }
-            addMsg("gm", marked.parse(txt));
-            updateUI();
         }
 
-        function renderOptions(opts) {
-            const c = document.getElementById('options-area'); c.innerHTML="";
-            opts.forEach(o => {
-                const b = document.createElement('button'); 
-                b.className = 'opt-btn';
-                b.innerText=o;
-                b.onclick = () => { const i = document.getElementById('user-input'); i.value = o; sendMsg(); };
-                c.appendChild(b);
+        function resetGame() {
+            if(confirm("確定要重置所有進度嗎？")) location.reload();
+        }
+
+        // --- 2. 屬性配點邏輯 (手動 + 隨機) ---
+        function renderStatsEditor() {
+            const container = document.getElementById('stats-editor');
+            container.innerHTML = "";
+            for(let key in state.stats) {
+                container.innerHTML += `
+                    <div class="attr-row" style="color:white;">
+                        <span>${key}</span>
+                        <div class="attr-val-box">
+                            <div class="circle-btn" onclick="modStat('${key}', -1)">-</div>
+                            <span id="edit-${key}">${state.stats[key]}</span>
+                            <div class="circle-btn" onclick="modStat('${key}', 1)">+</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function modStat(key, val) {
+            state.stats[key] += val;
+            document.getElementById(`edit-${key}`).innerText = state.stats[key];
+        }
+
+        function randomStats() {
+            let total = 0;
+            // D&D 3d6 規則或簡單隨機
+            for(let key in state.stats) {
+                state.stats[key] = Math.floor(Math.random() * 8) + 8; // 8~15
+                total += state.stats[key];
+            }
+            renderStatsEditor();
+            document.getElementById('points-left').innerText = `總和: ${total}`;
+        }
+
+        async function startGame() {
+            document.getElementById('stats-modal').classList.add('hidden');
+            updateHUD();
+            
+            const world = document.getElementById('world-prompt').value || "D&D 5e";
+            const sysPrompt = `你是一個 TRPG 地下城主 (DM)。世界觀：${world}。
+            【規則】
+            1. 每次回復請推動劇情，並在結尾給出行動選項。
+            2. 玩家擲骰後，請根據點數判定結果。
+            3. 回應結尾必須包含 JSON 格式來更新 UI (不要顯示給玩家看)：
+            \`\`\`json
+            {
+                "location": "地點",
+                "time": "時間",
+                "npcs": [{"name":"名字", "rel":"關係"}],
+                "inventory": ["物品1", "物品2"]
+            }
+            \`\`\`
+            `;
+            
+            conversationHistory = [{ role: "user", parts: [{ text: sysPrompt }] }];
+            addMsg("gm", "正在構建世界...", true);
+            await callGemini("請開始遊戲，描述開場。");
+        }
+
+        // --- 3. Google Style 骰子邏輯 ---
+        function addDie(sides) {
+            diceBag.push({ sides: sides, val: sides }); // 預設顯示最大值
+            renderDice();
+        }
+
+        function renderDice() {
+            const area = document.getElementById('active-dice-area');
+            area.innerHTML = "";
+            if(diceBag.length === 0) area.innerHTML = `<div style="color:#888; font-size:12px;">點擊下方按鈕加入骰子</div>`;
+            
+            let total = 0;
+            diceBag.forEach((d, idx) => {
+                const div = document.createElement('div');
+                div.className = `die die-d${d.sides}`;
+                div.innerText = d.val;
+                div.onclick = () => removeDie(idx);
+                area.appendChild(div);
+                total += d.val;
+            });
+            document.getElementById('dice-total').innerText = `總計: ${total}`;
+        }
+
+        function removeDie(index) {
+            diceBag.splice(index, 1);
+            renderDice();
+        }
+
+        function rollDice() {
+            if(diceBag.length === 0) return;
+            
+            // 動畫
+            const diceEls = document.querySelectorAll('.die');
+            diceEls.forEach(el => el.classList.add('rolling'));
+            
+            setTimeout(() => {
+                let total = 0;
+                let resultStr = "";
+                diceBag.forEach(d => {
+                    d.val = Math.floor(Math.random() * d.sides) + 1;
+                    total += d.val;
+                    resultStr += `(D${d.sides}=${d.val}) `;
+                });
+                
+                renderDice(); // 更新數字
+                diceEls.forEach(el => el.classList.remove('rolling'));
+                
+                // 自動填入對話框
+                document.getElementById('user-input').value = `我擲出了：${resultStr} 總計 ${total}`;
+            }, 500);
+        }
+
+        // --- 4. Gemini API 與 聊天 ---
+        async function sendMsg() {
+            const input = document.getElementById('user-input');
+            const txt = input.value.trim();
+            if(!txt) return;
+            
+            addMsg("user", txt);
+            input.value = "";
+            addMsg("gm", "...", true); // loading
+            
+            await callGemini(txt);
+        }
+
+        async function callGemini(text) {
+            conversationHistory.push({ role: "user", parts: [{ text: text }] });
+            
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: conversationHistory })
+                });
+                
+                const data = await res.json();
+                const aiText = data.candidates[0].content.parts[0].text;
+                
+                // 移除 loading
+                const loaders = document.querySelectorAll('.loading');
+                loaders.forEach(el => el.remove());
+
+                processResponse(aiText);
+                conversationHistory.push({ role: "model", parts: [{ text: aiText }] });
+
+            } catch(e) {
+                console.error(e);
+                addMsg("gm", "連線錯誤，請檢查 API Key 或網路。");
+            }
+        }
+
+        function processResponse(text) {
+            // 提取 JSON
+            const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+            let displayText = text;
+            
+            if(jsonMatch) {
+                try {
+                    const data = JSON.parse(jsonMatch[1]);
+                    if(data.location) state.location = data.location;
+                    if(data.time) state.time = data.time;
+                    if(data.npcs) state.npcs = data.npcs;
+                    if(data.inventory) state.inventory = data.inventory;
+                    
+                    updateHUD();
+                    displayText = text.replace(jsonMatch[0], ""); // 隱藏 JSON
+                } catch(e) { console.error("JSON Parse Error"); }
+            }
+            
+            addMsg("gm", marked.parse(displayText));
+        }
+
+        function addMsg(role, html, isLoading=false) {
+            const box = document.getElementById('chat-log');
+            const div = document.createElement('div');
+            div.className = `msg ${role} ${isLoading ? 'loading' : ''}`;
+            div.innerHTML = html;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function renderChatHistory() {
+            const box = document.getElementById('chat-log');
+            box.innerHTML = "";
+            conversationHistory.forEach(msg => {
+                // 跳過系統指令
+                if(msg.role === 'user' && msg.parts[0].text.includes('JSON')) return; 
+                
+                // 簡單渲染，不重新解析 JSON
+                const role = msg.role === 'model' ? 'gm' : 'user';
+                let txt = msg.parts[0].text.replace(/```json[\s\S]*```/, "");
+                addMsg(role, marked.parse(txt));
             });
         }
 
-        function updateUI() {
-            document.getElementById('hp-txt').innerText = `${state.hp}/${state.maxHp}`;
-            document.getElementById('hp-bar').style.width = `${(state.hp/state.maxHp)*100}%`;
-            document.getElementById('location-display').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${state.location}`;
-            document.getElementById('time-display').innerText = state.time;
-            const map = {str:'disp-str', dex:'disp-dex', con:'disp-con', int:'disp-int', wis:'disp-wis', cha:'disp-cha'};
-            for(let k in map) document.getElementById(map[k]).innerHTML = `<div class="attr-val">${state.stats[k]}</div>`;
-        }
+        // --- 5. UI 更新 ---
+        function updateHUD() {
+            document.getElementById('loc-disp').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${state.location}`;
+            document.getElementById('time-disp').innerText = state.time;
+            
+            // 屬性
+            let statHtml = "";
+            for(let k in state.stats) {
+                const mod = Math.floor((state.stats[k]-10)/2);
+                const sign = mod >= 0 ? "+" : "";
+                statHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span style="color:#aaa;">${k}</span>
+                    <span style="color:var(--accent); font-weight:bold;">${state.stats[k]} <span style="font-size:11px; color:#fff;">(${sign}${mod})</span></span>
+                </div>`;
+            }
+            document.getElementById('disp-stats').innerHTML = statHtml;
 
-        function addMsg(r, h) { const l=document.getElementById('chat-log'); l.innerHTML+=`<div class="msg ${r}">${h}</div>`; l.scrollTop=l.scrollHeight; }
-        window.sendMsg = () => { const i=document.getElementById('user-input'); if(!i.value.trim())return; addMsg("user",i.value); callAI(i.value); i.value=""; document.getElementById('options-area').innerHTML=""; };
-        window.saveToCode = () => prompt("代碼:", btoa(encodeURIComponent(JSON.stringify({state, history:conversationHistory}))));
-        window.loadFromCode = () => { try{ loadGameData(JSON.parse(decodeURIComponent(atob(document.getElementById('load-code').value)))); }catch(e){alert("無效");} };
-        window.loadGameData = (d) => { state=d.state; conversationHistory=d.history; document.getElementById('setup-modal').classList.add('hidden'); updateUI(); if(!confirmedModel) detectModelAndStart().catch(()=>{}); };
-        window.resetGame = () => { if(confirm("重置?")) { localStorage.removeItem('rpg_autosave_v39_1'); location.reload(); } };
+            // NPC
+            const npcBox = document.getElementById('npc-list');
+            if(state.npcs.length === 0) {
+                npcBox.innerHTML = `<div style="color:#666; font-style:italic;">尚無記錄</div>`;
+            } else {
+                npcBox.innerHTML = state.npcs.map(n => `
+                    <div class="npc-item">
+                        <span class="npc-name">${n.name}</span>
+                        <span class="npc-rel">${n.rel}</span>
+                    </div>
+                `).join('');
+            }
+
+            // 物品
+            const invBox = document.getElementById('inventory-list');
+            invBox.innerText = state.inventory.length ? state.inventory.join(", ") : "無";
+        }
     </script>
 </body>
 </html>
