@@ -2,12 +2,12 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V60 (Immersive Narrative)</title>
+    <title>RPG Engine V61 (Multi-Dice Mechanics)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- V60: 樣式維持 V58 大字體 --- */
+        /* --- V61: 樣式維持 V58 大字體 --- */
         :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --success: #03dac6; --warn: #cf6679; }
         body { margin: 0; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; font-size: 16px; }
 
@@ -24,7 +24,7 @@
         .stat-row { display: flex; justify-content: space-between; font-size: 15px; margin-bottom: 4px; }
 
         .header-bar { padding: 12px 24px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 15px; color: #aaa; }
-        .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 18px; line-height: 1.8; padding-bottom: 100px; } /* 行距加大 */
+        .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 18px; line-height: 1.8; padding-bottom: 100px; }
         .msg { margin-bottom: 24px; max-width: 90%; padding: 20px 25px; border-radius: 10px; animation: fadeIn 0.3s; }
         .msg.gm { background: #252525; border-left: 5px solid var(--accent); color: #e5e5e5; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .msg.user { background: #3d2c5e; color: #fff; margin-left: auto; text-align: right; }
@@ -93,7 +93,7 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-box" style="width: 400px;">
-            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V60</h2>
+            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V61</h2>
             <div class="login-tabs">
                 <button id="tab-login" class="tab-btn active" onclick="switchTab('login')">登入</button>
                 <button id="tab-register" class="tab-btn" onclick="switchTab('register')">註冊</button>
@@ -220,7 +220,7 @@
     </div>
 
     <script>
-        // --- V60: Immersive Narrative, High Temperature, Anti-Cliché ---
+        // --- V61: Multi-Dice Mechanics + V60 Narrative ---
         let confirmedModel = ""; 
         let conversationHistory = []; 
         let diceBag = []; 
@@ -237,7 +237,7 @@
         
         let state = JSON.parse(JSON.stringify(initialState));
         const ATTR_MAP = { str: '力量', dex: '敏捷', con: '體質', int: '智力', wis: '感知', cha: '魅力' };
-        const ACCOUNTS_KEY = 'rpg_local_accounts_v60'; // Updated Key for V60
+        const ACCOUNTS_KEY = 'rpg_local_accounts_v61'; 
 
         function safeEncode(str) { return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1))); }
         function safeDecode(str) { return decodeURIComponent(Array.prototype.map.call(window.atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')); }
@@ -382,11 +382,11 @@
         window.confirmStart = async function() {
             document.getElementById('char-modal').classList.add('hidden');
             updateUI();
-            addMsg("sys","正在構建世界 (高創造力模式)...");
+            addMsg("sys","初始化世界 (V61 多骰子模式)...");
             await detectModelAndStart();
         }
 
-        // --- Core API (V60: High Temp & Literary Prompt) ---
+        // --- Core API (V61 PROMPT: MULTI-DICE MECHANICS) ---
         async function detectModelAndStart() {
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
@@ -395,19 +395,25 @@
                 if(!m) throw new Error("API Key 無效");
                 confirmedModel = m.name.replace("models/","");
                 
-                // V60 PROMPT: LITERARY STYLE
-                const sysPrompt = `你是一位榮獲文學獎的黑暗奇幻小說家，同時也是 D&D 5e 的地下城主 (DM)。
-【風格指令】
-1. **嚴禁陳腔濫調**：絕對禁止使用「你在一陣刺痛中醒來」、「四周一片漆黑」等開場。請使用「In Media Res」(從事件中途開始) 或獨特的場景開場。
-2. **沉浸式描寫**：請大量描寫環境的氣味、質地、微小的聲音、光影的變化。文本長度必須充足（每次回應至少 300 字以上），營造強烈的氛圍。
-3. **Show, Don't Tell**：不要只說「你很害怕」，要描寫「你的手止不住地顫抖，冷汗滑過背脊」。
+                // V61 System Prompt: 強化骰子多樣性與敘事
+                const sysPrompt = `你是一位榮獲文學獎的黑暗奇幻小說家，同時也是熟知規則的 D&D 地下城主。
+【核心規則：骰子多樣性】
+除了 D20 (成敗判定) 外，請積極使用其他骰子決定「程度」或「效果」：
+1. **D4 (微量)**：小型武器(匕首)、藥水回復、搜刮金幣數、時間流逝(小時)。
+2. **D6 (標準)**：輕型武器(短劍)、法術傷害(火球)、屬性判定、隨機物品數量。
+3. **D8 (重型)**：中型武器(長劍/弩)、標準治療、武僧傷害。
+4. **D10 (毀滅/百分比)**：雙手武器、重型傷害、爆炸範圍。
+5. **D12 (極限)**：蠻力破壞、巨斧傷害。
 
-【規則指令】
-1. **禁止代擲**：絕對禁止幫玩家決定行動。
-2. **判定格式**：當要求檢定時，**必須明確指出投擲 D20** 以及**相關屬性**。
-   - 格式：「請投擲 **D20** 進行 **[感知 (察覺)]** 檢定 (修正值 -1, DC 12)」。
-3. **物品管理**：在 JSON 中使用 'add_item'/'remove_item'。
-4. **SAN 系統**：0-100%。遭遇恐怖需 SAN Check。
+【判定流程範例】
+- 攻擊成功後 -> 「請投擲 **1d8** 決定長劍造成的傷害。」
+- 搜刮屍體 -> 「請投擲 **2d6** 決定你找到的金幣數量。」
+- 喝下藥水 -> 「請投擲 **2d4+2** 決定回復的生命值。」
+
+【敘事要求】
+1. **沉浸感**：禁止陳腔濫調 (如醒來頭痛)。請多描寫氣味、觸感、光影。
+2. **禁止代擲**：絕對禁止幫玩家決定結果。
+3. **SAN 系統**：0-100%，遭遇恐怖需 SAN Check。
 
 【當前狀態】${JSON.stringify(state.stats)}
 
@@ -422,13 +428,13 @@
   "remove_item": "",
   "time": "...",
   "location": "...",
-  "npcs": [{"name":"名字","rel":"關係"}],
-  "story_options": ["選項1 (大膽)", "選項2 (謹慎)", "選項3 (觀察)"]
+  "npcs": [],
+  "story_options": ["選項1", "選項2"]
 }
 \`\`\`
-世界觀：「${state.worldPrompt}」。請以極具創意的方式開始故事。`;
+世界觀：「${state.worldPrompt}」。請開始這段冒險。`;
                 
-                conversationHistory = [{role:"user", parts:[{text:sysPrompt}]}, {role:"model", parts:[{text:"遵命，我將為您編織一段刻骨銘心的冒險。"}]}];
+                conversationHistory = [{role:"user", parts:[{text:sysPrompt}]}, {role:"model", parts:[{text:"遵命。"}]}];
                 await callAI(`(冒險開始)`);
                 saveToAccount();
             } catch(e) { alert("啟動失敗: " + e.message); }
@@ -450,7 +456,6 @@
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${confirmedModel}:generateContent?key=${window.USER_API_KEY}`, {
                     method:'POST', headers:{'Content-Type':'application/json'}, 
-                    // V60: Temperature increased to 0.9 for creativity
                     body:JSON.stringify({ contents: conversationHistory, generationConfig: { temperature: 0.9 } })
                 });
                 const data = await res.json();
