@@ -2,84 +2,88 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V53 (Full DM Style)</title>
+    <title>RPG Engine V54 (Large Font & Save Fix)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- 樣式維持不變 (V39.1 標準) --- */
+        /* --- 樣式調整：字體放大 (Issue 1 Fix) --- */
         :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --success: #03dac6; --warn: #cf6679; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+        body { margin: 0; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; font-size: 16px; }
 
         .app-container { display: flex; height: 100%; }
-        .sidebar { width: 420px; background: #181818; border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
+        /* 側邊欄加寬以適應大字體 */
+        .sidebar { width: 460px; background: #181818; border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
         .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
 
-        .panel-content { padding: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; }
-        .card { background: var(--panel); padding: 12px; border-radius: 8px; border: 1px solid #333; }
-        .card-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        .panel-content { padding: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+        .card { background: var(--panel); padding: 15px; border-radius: 8px; border: 1px solid #333; }
+        .card-header { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; color: #aaa; margin-bottom: 10px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 6px; }
         
-        .bar-wrap { background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 4px; }
+        .bar-wrap { background: #333; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
         .bar-fill { height: 100%; transition: width 0.5s ease; }
-        .stat-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 2px; }
+        .stat-row { display: flex; justify-content: space-between; font-size: 15px; margin-bottom: 4px; }
 
-        .header-bar { padding: 10px 20px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #aaa; }
-        .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 15px; line-height: 1.6; padding-bottom: 100px; }
-        .msg { margin-bottom: 20px; max-width: 90%; padding: 12px 16px; border-radius: 8px; animation: fadeIn 0.3s; }
-        .msg.gm { background: #252525; border-left: 4px solid var(--accent); color: #ddd; }
-        .msg.user { background: #3d2c5e; color: #fff; margin-left: auto; text-align: right; }
-        .msg.sys { background: rgba(3, 218, 198, 0.1); color: var(--success); font-size: 13px; text-align: center; max-width: 100%; border: 1px dashed var(--success); margin: 10px auto; }
+        .header-bar { padding: 12px 24px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 15px; color: #aaa; }
         
-        .options-container { padding: 10px 15px; background: #181818; display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid #333; }
-        .opt-btn { background: #2a2a2a; color: #bbb; border: 1px solid #444; padding: 6px 12px; border-radius: 15px; cursor: pointer; font-size: 13px; transition: 0.2s; text-align: left; }
+        /* 聊天文字放大 */
+        .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 18px; line-height: 1.7; padding-bottom: 100px; }
+        .msg { margin-bottom: 24px; max-width: 90%; padding: 15px 20px; border-radius: 10px; animation: fadeIn 0.3s; }
+        .msg.gm { background: #252525; border-left: 5px solid var(--accent); color: #e5e5e5; }
+        .msg.user { background: #3d2c5e; color: #fff; margin-left: auto; text-align: right; }
+        .msg.sys { background: rgba(3, 218, 198, 0.1); color: var(--success); font-size: 15px; text-align: center; max-width: 95%; border: 1px dashed var(--success); margin: 15px auto; }
+        
+        .options-container { padding: 15px; background: #181818; display: flex; flex-wrap: wrap; gap: 10px; border-top: 1px solid #333; }
+        .opt-btn { background: #2a2a2a; color: #ccc; border: 1px solid #444; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 15px; transition: 0.2s; text-align: left; }
         .opt-btn:hover { background: #333; color: var(--accent); border-color: var(--accent); }
 
-        .input-area { padding: 15px; background: #181818; display: flex; gap: 10px; }
-        input[type="text"] { flex: 1; padding: 12px; background: #252525; border: 1px solid #444; color: white; border-radius: 24px; outline: none; padding-left: 20px; }
-        .send-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .input-area { padding: 20px; background: #181818; display: flex; gap: 12px; }
+        input[type="text"] { flex: 1; padding: 14px; background: #252525; border: 1px solid #444; color: white; border-radius: 30px; outline: none; padding-left: 24px; font-size: 16px; }
+        .send-btn { width: 50px; height: 50px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; font-size: 20px; }
 
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
-        .modal-box { background: #252525; width: 450px; padding: 30px; border-radius: 12px; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .modal-btn { width: 100%; padding: 12px; background: var(--accent); color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .modal-box { background: #252525; width: 500px; padding: 35px; border-radius: 12px; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .modal-btn { width: 100%; padding: 14px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px; font-size: 16px; }
 
-        .attr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .attr-main { text-align: center; background: #2a2a2a; padding: 5px; border-radius: 4px; }
-        .attr-val { font-size: 18px; font-weight: bold; color: var(--accent); }
-        .attr-mod { font-size: 12px; color: var(--success); font-weight: bold; }
-        .attr-lbl { font-size: 12px; color: #aaa; }
-        .attr-cn { font-size: 11px; color: #666; display: block; margin-top: 2px; }
+        .attr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .attr-main { text-align: center; background: #2a2a2a; padding: 8px; border-radius: 6px; }
+        .attr-val { font-size: 22px; font-weight: bold; color: var(--accent); }
+        .attr-mod { font-size: 14px; color: var(--success); font-weight: bold; }
+        .attr-lbl { font-size: 14px; color: #aaa; }
+        .attr-cn { font-size: 12px; color: #777; display: block; margin-top: 2px; }
 
-        .attr-edit-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-        .attr-edit-box { background: #2a2a2a; padding: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
-        .attr-ctrl { display: flex; align-items: center; gap: 5px; }
-        .attr-btn { width: 20px; height: 20px; border-radius: 50%; border: none; background: #444; color: #fff; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center;}
-        .range-input { width: 60px; background: #111; border: 1px solid #444; color: #fff; text-align: center; padding: 4px; border-radius: 4px; }
+        .attr-edit-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .attr-edit-box { background: #2a2a2a; padding: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .attr-ctrl { display: flex; align-items: center; gap: 8px; }
+        .attr-btn { width: 24px; height: 24px; border-radius: 50%; border: none; background: #444; color: #fff; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;}
+        .range-input { width: 70px; background: #111; border: 1px solid #444; color: #fff; text-align: center; padding: 6px; border-radius: 4px; font-size: 15px; }
 
         .hidden { display: none !important; }
 
-        #dice-stage { width: 100%; min-height: 200px; background: #e8eaed; border-bottom: 1px solid #333; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #active-dice-area { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; padding: 10px; }
-        .die { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: white; cursor: pointer; user-select: none; transition: transform 0.1s; position: relative; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        #dice-stage { width: 100%; min-height: 220px; background: #e8eaed; border-bottom: 1px solid #333; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #active-dice-area { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; padding: 15px; }
+        .die { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white; cursor: pointer; user-select: none; transition: transform 0.1s; position: relative; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
         .die:hover { transform: scale(1.1); }
         .die.rolling { animation: shake 0.5s infinite; }
         
-        .die-d4 { background: #34a853; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); padding-top: 5px; height: 45px; }
+        /* 骰子顏色樣式維持不變 */
+        .die-d4 { background: #34a853; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); padding-top: 5px; height: 50px; }
         .die-d6 { background: #2ab7ca; border-radius: 4px; }
         .die-d8 { background: #a142f4; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
         .die-d10 { background: #f43f5e; clip-path: polygon(50% 0%, 100% 38%, 50% 100%, 0% 38%); }
         .die-d12 { background: #ea4335; clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%); }
         .die-d20 { background: #fb8c00; clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%); }
 
-        #dice-total { position: absolute; bottom: 5px; right: 10px; font-size: 18px; color: #5f6368; font-weight: bold; background: rgba(255,255,255,0.8); padding: 2px 6px; border-radius: 4px; }
+        #dice-total { position: absolute; bottom: 8px; right: 12px; font-size: 20px; color: #5f6368; font-weight: bold; background: rgba(255,255,255,0.9); padding: 4px 8px; border-radius: 4px; }
 
-        .dice-btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 5px; }
-        .d-btn { height: 36px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 12px; background: #333; box-shadow: 0 2px 0 rgba(0,0,0,0.3); transition: transform 0.1s; }
+        .dice-btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 8px; }
+        .d-btn { height: 40px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; background: #333; box-shadow: 0 3px 0 rgba(0,0,0,0.3); transition: transform 0.1s; }
         .d-btn:active { transform: scale(0.95); }
         .btn-d4 { border-bottom: 3px solid #34a853; } .btn-d6 { border-bottom: 3px solid #2ab7ca; } .btn-d8 { border-bottom: 3px solid #a142f4; }
         .btn-d10 { border-bottom: 3px solid #f43f5e; } .btn-d12 { border-bottom: 3px solid #ea4335; } .btn-d20 { border-bottom: 3px solid #fb8c00; }
 
-        .roll-trigger-btn { background: var(--accent); color: #000; border: none; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; }
-        .send-result-btn { background: var(--success); color: #000; border: none; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; margin-left: 10px; display: none; }
+        .roll-trigger-btn { background: var(--accent); color: #000; border: none; padding: 6px 16px; border-radius: 14px; font-size: 13px; font-weight: bold; cursor: pointer; }
+        .send-result-btn { background: var(--success); color: #000; border: none; padding: 6px 16px; border-radius: 14px; font-size: 13px; font-weight: bold; cursor: pointer; margin-left: 10px; display: none; }
 
         @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(10deg); } 50% { transform: rotate(-10deg); } 75% { transform: rotate(5deg); } 100% { transform: rotate(0deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -89,27 +93,27 @@
 
     <div id="setup-modal" class="modal">
         <div class="modal-box">
-            <h2 style="color:var(--accent); margin-top:0;">🚀 RPG Engine (V53)</h2>
-            <p>世界觀設定：</p>
-            <textarea id="world-prompt" rows="3" style="width:100%; background:#111; color:#fff; border:1px solid #444; padding:10px; border-radius:4px;" placeholder="例如：龍與地下城 D&D 5e..."></textarea>
+            <h2 style="color:var(--accent); margin-top:0; font-size: 24px;">🚀 RPG Engine V54</h2>
+            <p style="font-size:16px;">世界觀設定：</p>
+            <textarea id="world-prompt" rows="3" style="width:100%; background:#111; color:#fff; border:1px solid #444; padding:12px; border-radius:6px; font-size:16px;" placeholder="例如：龍與地下城 D&D 5e..."></textarea>
             <button class="modal-btn" onclick="startCharacterCreation()">下一步：生成角色</button>
-            <div style="margin-top:20px; border-top:1px solid #444; padding-top:10px;">
-                <p style="font-size:12px; color:#aaa;">讀取存檔：</p>
-                <input type="text" id="load-code" placeholder="存檔碼..." style="width:100%; padding:8px; background:#111; border:1px solid #444; color:#fff; margin-bottom:5px;">
-                <button class="modal-btn" style="background:#444; color:#fff; margin-top:0;" onclick="loadFromCode()">讀取</button>
+            <div style="margin-top:25px; border-top:1px solid #444; padding-top:15px;">
+                <p style="font-size:14px; color:#aaa;">讀取存檔代碼 (Unicode 支援)：</p>
+                <input type="text" id="load-code" placeholder="請貼上代碼..." style="width:100%; padding:10px; background:#111; border:1px solid #444; color:#fff; margin-bottom:8px; font-size:14px;">
+                <button class="modal-btn" style="background:#444; color:#fff; margin-top:0;" onclick="loadFromCode()">讀取存檔</button>
             </div>
         </div>
     </div>
 
     <div id="char-modal" class="modal hidden">
         <div class="modal-box">
-            <h2 style="color:var(--success); margin-top:0;">🎲 屬性分配 (D&D 5e)</h2>
+            <h2 style="color:var(--success); margin-top:0; font-size: 24px;">🎲 屬性分配 (D&D 5e)</h2>
             <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
-                <span style="color:#aaa; font-size:13px;">屬性總和範圍：</span>
+                <span style="color:#aaa; font-size:15px;">屬性總和範圍：</span>
                 <div><input type="number" id="stat-min" class="range-input" value="72"> - <input type="number" id="stat-max" class="range-input" value="80"></div>
             </div>
             <div id="char-stats-editor" class="attr-edit-grid" style="margin: 20px 0;"></div>
-            <div style="background:#111; padding:10px; border-radius:4px; font-size:13px; color:#aaa; margin-bottom:15px; text-align:center;">
+            <div style="background:#111; padding:12px; border-radius:6px; font-size:15px; color:#aaa; margin-bottom:15px; text-align:center;">
                 <div id="derived-stats">計算中...</div>
             </div>
             <div style="display:flex; gap:10px;">
@@ -122,7 +126,7 @@
     <div class="app-container">
         <aside class="sidebar">
             <div id="dice-stage">
-                <div id="active-dice-area"><div style="color:#888; font-size:12px;">點擊下方按鈕加入骰子</div></div>
+                <div id="active-dice-area"><div style="color:#888; font-size:14px;">點擊下方按鈕加入骰子</div></div>
                 <div id="dice-total"></div>
             </div>
             
@@ -169,10 +173,10 @@
 
                 <div class="card">
                     <div class="card-header">人物關係</div>
-                    <div id="npc-list" style="font-size:13px; color:#aaa; padding:5px;">尚無記錄</div>
+                    <div id="npc-list" style="font-size:15px; color:#aaa; padding:5px;">尚無記錄</div>
                 </div>
 
-                <div class="card" style="flex:1"><div class="card-header">物品</div><div id="inv-list" style="font-size:13px; color:#aaa; padding:5px;">無</div></div>
+                <div class="card" style="flex:1"><div class="card-header">物品</div><div id="inv-list" style="font-size:15px; color:#aaa; padding:5px;">無</div></div>
             </div>
         </aside>
         
@@ -180,15 +184,15 @@
             <div class="header-bar">
                 <div class="header-info">
                     <span id="location-display"><i class="fas fa-map-marker-alt"></i> 虛空</span>
-                    <span id="time-display" style="margin-left: 10px; color:#666;">初始</span>
+                    <span id="time-display" style="margin-left: 15px; color:#888;">初始</span>
                 </div>
                 <div>
-                    <button class="menu-btn" onclick="saveToCode()" style="background:none;border:none;cursor:pointer;color:#aaa;">💾</button>
-                    <button class="menu-btn" onclick="resetGame()" style="color:#f55; margin-left:5px; background:none;border:none;cursor:pointer;">🗑️</button>
+                    <button class="menu-btn" onclick="saveToCode()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;" title="複製存檔碼">💾</button>
+                    <button class="menu-btn" onclick="resetGame()" style="color:#f55; margin-left:10px; background:none;border:none;cursor:pointer;font-size:18px;" title="重置">🗑️</button>
                 </div>
             </div>
             
-            <div id="chat-log" class="chat-log"><div class="msg gm">系統就緒。</div></div>
+            <div id="chat-log" class="chat-log"><div class="msg gm">系統就緒。請建立角色或讀取存檔。</div></div>
             <div id="options-area" class="options-container"></div>
             
             <div class="input-area">
@@ -199,7 +203,7 @@
     </div>
 
     <script>
-        // --- V53: Complete DM Style (Dice Instruction + Mod Text) ---
+        // --- V54: Big Font + Save Fix (Unicode) + Story Restore ---
         let confirmedModel = ""; 
         let conversationHistory = []; 
         let diceBag = []; 
@@ -214,6 +218,19 @@
 
         const ATTR_MAP = { str: '力量', dex: '敏捷', con: '體質', int: '智力', wis: '感知', cha: '魅力' };
 
+        // Unicode Base64 編碼 helper (解決存檔亂碼問題)
+        function utf8_to_b64(str) {
+            return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+                return String.fromCharCode('0x' + p1);
+            }));
+        }
+
+        function b64_to_utf8(str) {
+            return decodeURIComponent(Array.prototype.map.call(window.atob(str), function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
+
         window.onload = function() {
             document.getElementById('user-input').addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') sendMsg();
@@ -222,8 +239,8 @@
             const cachedKey = localStorage.getItem('my_gemini_key_v1');
             if (cachedKey) window.USER_API_KEY = cachedKey;
 
-            const saved = localStorage.getItem('rpg_autosave_v53');
-            if (saved && confirm("偵測到存檔，要繼續嗎？")) {
+            const saved = localStorage.getItem('rpg_autosave_v54');
+            if (saved && confirm("偵測到瀏覽器存檔，要繼續上次的冒險嗎？")) {
                 loadGameData(JSON.parse(saved));
             }
         };
@@ -257,7 +274,7 @@
                 totalDisplay.style.display = 'block';
             } else {
                 totalDisplay.style.display = 'none';
-                area.innerHTML = '<div style="color:#888; font-size:12px;">點擊按鈕新增骰子</div>';
+                area.innerHTML = '<div style="color:#888; font-size:14px;">點擊按鈕新增骰子</div>';
             }
         }
         window.roll2DDice = function() {
@@ -338,13 +355,13 @@
             let h=''; 
             for(let k in state.stats){
                 h += `<div class="attr-edit-box">
-                        <div class="attr-lbl" style="width:50px;">${k.toUpperCase()}<br><span style="font-size:10px;color:#888;">${ATTR_MAP[k]}</span></div>
+                        <div class="attr-lbl" style="width:60px;">${k.toUpperCase()}<br><span style="font-size:12px;color:#888;">${ATTR_MAP[k]}</span></div>
                         <div class="attr-ctrl">
                             <button class="attr-btn" onclick="adjustStat('${k}',-1)">-</button>
                             <div class="attr-val">${state.stats[k]}</div>
                             <button class="attr-btn" onclick="adjustStat('${k}',1)">+</button>
                         </div>
-                        <div style="font-size:12px;color:var(--success);width:30px;text-align:right;">${getModStr(state.stats[k])}</div>
+                        <div style="font-size:14px;color:var(--success);width:35px;text-align:right;">${getModStr(state.stats[k])}</div>
                       </div>`;
             }
             document.getElementById('char-stats-editor').innerHTML=h;
@@ -360,7 +377,7 @@
             await detectModelAndStart();
         }
 
-        // --- 3. API 邏輯 (Gemini V39.1 Core) ---
+        // --- 3. API 邏輯 (V39.1) ---
         async function detectModelAndStart() {
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
@@ -369,13 +386,12 @@
                 if(!m) throw new Error("API Key 無效或額度不足");
                 confirmedModel = m.name.replace("models/","");
                 
-                // V53: 指令再次強化 - 必須列出骰子、名稱、修正值、DC
+                // System Prompt: V53 (DM Style + Mod Text)
                 const sysPrompt = `你是一個嚴格遵守 D&D 5e 規則的地下城主 (DM)。
 【核心指令】
 1. **世界動態**：世界必須獨立運轉，NPC 有動機，不能因為玩家閒置而停止。
 2. **禁止代擲**：**絕對禁止**幫玩家決定行動結果或擲骰。
 3. **判定格式**：當要求檢定時，必須明確指出骰子類型 (通常是 D20)。
-   - 錯誤範例：「請進行察覺檢定 (DC 15)」
    - 正確範例：「請投擲 **D20** 進行 [感知 (察覺)] 檢定 (修正值 -1, DC 15)」
 4. **戰力控制**：嚴格控制屬性與物品獲取。
 5. **沉浸感**：意外事件需有邏輯鋪墊。
@@ -406,12 +422,9 @@
             const log = document.getElementById('chat-log');
             log.innerHTML += `<div id="load-anim" class="msg gm">DM 正在思考...</div>`; log.scrollTop=log.scrollHeight;
             
-            // 自動注入當前修正值
-            const modInfo = Object.keys(state.stats).map(k => {
-                return `${k.toUpperCase()}: ${getModStr(state.stats[k])}`;
-            }).join(', ');
-
+            const modInfo = Object.keys(state.stats).map(k => `${k.toUpperCase()}: ${getModStr(state.stats[k])}`).join(', ');
             const context = `[隱藏資訊: HP=${state.hp}, 當前修正值={${modInfo}}, 時間=${state.time}, 地點=${state.location}]`;
+            
             conversationHistory.push({role:"user", parts:[{text: txt + "\n" + context}]});
 
             try {
@@ -426,7 +439,6 @@
 
                 const data = await res.json();
                 document.getElementById('load-anim').remove();
-
                 if (data.error) throw new Error(data.error.message);
                 
                 const aiTxt = data.candidates[0].content.parts[0].text;
@@ -451,7 +463,7 @@
                     if(u.location) state.location = u.location;
                     if(u.npcs) state.npcs = u.npcs;
                     if(u.story_options) renderOptions(u.story_options);
-                    localStorage.setItem('rpg_autosave_v53', JSON.stringify({state, history:conversationHistory}));
+                    localStorage.setItem('rpg_autosave_v54', JSON.stringify({state, history:conversationHistory}));
                     displayTxt = txt.replace(jsonMatch[0], "");
                 } catch(e){}
             }
@@ -481,16 +493,63 @@
             }
             const npcDiv = document.getElementById('npc-list');
             if(state.npcs && state.npcs.length > 0) {
-                npcDiv.innerHTML = state.npcs.map(n => `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #333;padding:4px;"><span style="color:#bb86fc">${n.name}</span><span style="color:#888;font-size:11px;">${n.rel}</span></div>`).join('');
+                npcDiv.innerHTML = state.npcs.map(n => `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #333;padding:4px;"><span style="color:#bb86fc">${n.name}</span><span style="color:#888;font-size:13px;">${n.rel}</span></div>`).join('');
             } else { npcDiv.innerHTML = "無重要 NPC"; }
         }
 
         function addMsg(r, h) { const l=document.getElementById('chat-log'); l.innerHTML+=`<div class="msg ${r}">${h}</div>`; l.scrollTop=l.scrollHeight; }
+        
+        // --- 存檔/讀檔修復邏輯 ---
         window.sendMsg = () => { const i=document.getElementById('user-input'); if(!i.value.trim()) return; addMsg("user",i.value); callAI(i.value); i.value=""; document.getElementById('options-area').innerHTML=""; };
-        window.saveToCode = () => prompt("存檔碼:", btoa(encodeURIComponent(JSON.stringify({state, history:conversationHistory}))));
-        window.loadFromCode = () => { try{ loadGameData(JSON.parse(decodeURIComponent(atob(document.getElementById('load-code').value)))); }catch(e){alert("無效代碼");} };
-        window.loadGameData = (d) => { state=d.state; conversationHistory=d.history; document.getElementById('setup-modal').classList.add('hidden'); updateUI(); if(!confirmedModel) detectModelAndStart().catch(()=>{}); };
-        window.resetGame = () => { if(confirm("確定重置?")) { localStorage.removeItem('rpg_autosave_v53'); location.reload(); } };
+        
+        // 使用 utf8_to_b64 進行存檔編碼，解決 Invalid Code 問題
+        window.saveToCode = () => {
+            const code = utf8_to_b64(JSON.stringify({state, history:conversationHistory}));
+            prompt("請複製此存檔代碼 (已支援中文):", code);
+        };
+
+        window.loadFromCode = () => { 
+            try { 
+                const input = document.getElementById('load-code').value.trim();
+                if(!input) return;
+                // 使用 b64_to_utf8 進行解碼
+                const json = b64_to_utf8(input);
+                const d = JSON.parse(json);
+                loadGameData(d);
+            } catch(e) {
+                alert("無效的代碼或格式錯誤。\n詳細錯誤: " + e.message); 
+            } 
+        };
+
+        window.loadGameData = (d) => { 
+            state = d.state; 
+            conversationHistory = d.history; 
+            document.getElementById('setup-modal').classList.add('hidden'); 
+            
+            // 重要修復：讀檔後重新渲染歷史訊息 (解決 Issue 2)
+            const log = document.getElementById('chat-log');
+            log.innerHTML = '';
+            conversationHistory.forEach(msg => {
+                if(msg.role === 'user' && msg.parts) addMsg('user', msg.parts[0].text.split('\n[隱藏資訊')[0]); // 隱藏 context
+                if(msg.role === 'model' && msg.parts) {
+                     // 移除 JSON 區塊再顯示
+                     let txt = msg.parts[0].text;
+                     txt = txt.replace(/```json[\s\S]*?```/g, '');
+                     addMsg('gm', marked.parse(txt));
+                }
+            });
+
+            updateUI();
+            
+            // 恢復模型名稱 (如果沒存到，嘗試再次偵測)
+            if(!confirmedModel) {
+                 detectModelAndStart().catch(()=>{}); // 這裡主要是為了抓 model name，不發送新訊息
+            } else {
+                 addMsg("sys", "存檔讀取成功，請繼續冒險。");
+            }
+        };
+
+        window.resetGame = () => { if(confirm("確定要刪除進度重置嗎?")) { localStorage.removeItem('rpg_autosave_v54'); location.reload(); } };
     </script>
 </body>
 </html>
