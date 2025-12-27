@@ -2,12 +2,12 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V58 (Export UI Fix)</title>
+    <title>RPG Engine V59 (Inv & Dice Fix)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- V58: UI Styles --- */
+        /* --- V59: 樣式維持 V58 大字體 --- */
         :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --success: #03dac6; --warn: #cf6679; }
         body { margin: 0; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; font-size: 16px; }
 
@@ -17,24 +17,19 @@
 
         .panel-content { padding: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px; }
         .card { background: var(--panel); padding: 15px; border-radius: 8px; border: 1px solid #333; }
-        
-        /* Stats & Bars */
         .card-header { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; color: #aaa; margin-bottom: 10px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 6px; }
+        
         .bar-wrap { background: #333; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
         .bar-fill { height: 100%; transition: width 0.5s ease; }
         .stat-row { display: flex; justify-content: space-between; font-size: 15px; margin-bottom: 4px; }
 
-        /* Header */
         .header-bar { padding: 12px 24px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 15px; color: #aaa; }
-        
-        /* Chat */
         .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 18px; line-height: 1.7; padding-bottom: 100px; }
         .msg { margin-bottom: 24px; max-width: 90%; padding: 15px 20px; border-radius: 10px; animation: fadeIn 0.3s; }
         .msg.gm { background: #252525; border-left: 5px solid var(--accent); color: #e5e5e5; }
         .msg.user { background: #3d2c5e; color: #fff; margin-left: auto; text-align: right; }
         .msg.sys { background: rgba(3, 218, 198, 0.1); color: var(--success); font-size: 15px; text-align: center; max-width: 95%; border: 1px dashed var(--success); margin: 15px auto; }
         
-        /* Inputs */
         .options-container { padding: 15px; background: #181818; display: flex; flex-wrap: wrap; gap: 10px; border-top: 1px solid #333; min-height: 60px; }
         .opt-btn { background: #2a2a2a; color: #ccc; border: 1px solid #444; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 15px; transition: 0.2s; text-align: left; }
         .opt-btn:hover { background: #333; color: var(--accent); border-color: var(--accent); }
@@ -44,14 +39,12 @@
         input[type="text"] { border-radius: 30px; padding-left: 24px; }
         .send-btn { width: 50px; height: 50px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; font-size: 20px; }
 
-        /* Modals */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-box { background: #1e1e1e; width: 550px; padding: 30px; border-radius: 12px; border: 1px solid #444; box-shadow: 0 10px 40px rgba(0,0,0,0.8); max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
         .modal-btn { width: 100%; padding: 14px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 16px; transition: 0.2s; }
         .modal-btn:hover { filter: brightness(1.1); }
         .modal-btn.secondary { background: #444; color: #fff; }
 
-        /* Login & Stats UI */
         .login-tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid #444; }
         .tab-btn { flex: 1; background: none; border: none; color: #888; padding: 10px; cursor: pointer; font-size: 16px; }
         .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); font-weight: bold; }
@@ -71,16 +64,8 @@
         .range-input { width: 60px; background: #111; border: 1px solid #444; color: #fff; text-align: center; padding: 4px; border-radius: 4px; font-size: 15px; }
 
         .hidden { display: none !important; }
+        .code-display { width: 100%; height: 200px; background: #111; color: #0f0; border: 1px solid #333; padding: 10px; font-family: monospace; font-size: 12px; resize: none; word-break: break-all; box-sizing: border-box; margin-bottom: 10px; }
 
-        /* V58: Export Textarea */
-        .code-display {
-            width: 100%; height: 200px; background: #111; color: #0f0; 
-            border: 1px solid #333; padding: 10px; font-family: monospace; 
-            font-size: 12px; resize: none; word-break: break-all;
-            box-sizing: border-box; margin-bottom: 10px;
-        }
-
-        /* Dice */
         #dice-stage { width: 100%; min-height: 220px; background: #e8eaed; border-bottom: 1px solid #333; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         #active-dice-area { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; padding: 15px; }
         .die { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white; cursor: pointer; user-select: none; transition: transform 0.1s; position: relative; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
@@ -108,14 +93,14 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-box" style="width: 400px;">
-            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V58</h2>
+            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V59</h2>
             <div class="login-tabs">
                 <button id="tab-login" class="tab-btn active" onclick="switchTab('login')">登入</button>
                 <button id="tab-register" class="tab-btn" onclick="switchTab('register')">註冊</button>
             </div>
             <input type="text" id="username" class="login-input" placeholder="帳號">
             <input type="password" id="password" class="login-input" placeholder="密碼">
-            <input type="password" id="confirm-password" class="login-input hidden" placeholder="再次輸入密碼">
+            <input type="password" id="confirm-password" class="login-input hidden" placeholder="再次輸入密碼 (確認)">
             <button id="btn-login-action" class="modal-btn" onclick="handleLoginAction()">登入</button>
             <p style="font-size:12px; color:#666; margin-top:15px; text-align:center;">* 帳號資料僅存於本機</p>
         </div>
@@ -203,7 +188,13 @@
                         <div class="attr-main"><div class="attr-lbl">CHA</div><div class="attr-cn">魅力</div><div id="disp-cha"></div></div>
                     </div>
                 </div>
-                <div class="card"><div class="card-header">人物關係</div><div id="npc-list" style="font-size:15px; color:#aaa; padding:5px;">無</div></div>
+                <div class="card">
+                    <div class="card-header">人物關係</div><div id="npc-list" style="font-size:15px; color:#aaa; padding:5px;">無</div>
+                </div>
+                <div class="card" style="flex:1">
+                    <div class="card-header">物品 (Inventory)</div>
+                    <div id="inv-list" style="font-size:15px; color:#aaa; padding:5px;">無</div>
+                </div>
             </div>
         </aside>
         <main class="main-content">
@@ -215,7 +206,6 @@
                 <div>
                     <button class="menu-btn" onclick="openSyncModal('export')" style="color:#ccc; margin-right:5px; background:none;border:none;cursor:pointer;font-size:16px;">📤 匯出</button>
                     <button class="menu-btn" onclick="openSyncModal('import')" style="color:#ccc; margin-right:15px; background:none;border:none;cursor:pointer;font-size:16px;">📥 匯入</button>
-                    
                     <button class="menu-btn" onclick="saveToAccount()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;">☁️ 存檔</button>
                     <button class="menu-btn" onclick="logout()" style="color:#f55; margin-left:10px; background:none;border:none;cursor:pointer;font-size:16px;">🚪 登出</button>
                 </div>
@@ -230,7 +220,7 @@
     </div>
 
     <script>
-        // --- V58: Export UI Fix + All V57 Logic ---
+        // --- V59: Inventory Fix, Dice Instruction Fix, Sync Fix ---
         let confirmedModel = ""; 
         let conversationHistory = []; 
         let diceBag = []; 
@@ -239,7 +229,7 @@
 
         const initialState = { 
             hp: 10, maxHp: 10, mp: 10, maxMp: 10, mpLabel: "MP", 
-            san: 90, maxSan: 100, // SAN fixed to 100 cap
+            san: 90, maxSan: 100, 
             stats: { str:10, dex:10, con:10, int:10, wis:10, cha:10 }, 
             inventory: [], npcs: [], story_options: [], 
             time: "第一天 清晨", weather: "未知", location: "起始點", worldPrompt: "" 
@@ -247,64 +237,46 @@
         
         let state = JSON.parse(JSON.stringify(initialState));
         const ATTR_MAP = { str: '力量', dex: '敏捷', con: '體質', int: '智力', wis: '感知', cha: '魅力' };
-        const ACCOUNTS_KEY = 'rpg_local_accounts_v58';
+        const ACCOUNTS_KEY = 'rpg_local_accounts_v59'; // Updated Key
 
-        // Safe Encoding (Unicode support)
-        function safeEncode(str) {
-            return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
-                return String.fromCharCode('0x' + p1);
-            }));
-        }
-        function safeDecode(str) {
-            return decodeURIComponent(Array.prototype.map.call(window.atob(str), function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-        }
+        function safeEncode(str) { return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1))); }
+        function safeDecode(str) { return decodeURIComponent(Array.prototype.map.call(window.atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')); }
 
         window.onload = function() {
-            document.getElementById('user-input').addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') sendMsg();
-            });
+            document.getElementById('user-input').addEventListener('keypress', function (e) { if (e.key === 'Enter') sendMsg(); });
             const cachedKey = localStorage.getItem('my_gemini_key_v1');
             if (cachedKey) window.USER_API_KEY = cachedKey;
         };
 
-        // --- 1. Account Logic ---
+        // --- Account ---
         let currentTab = 'login';
         window.switchTab = function(tab) {
             currentTab = tab;
             document.getElementById('tab-login').className = tab === 'login' ? 'tab-btn active' : 'tab-btn';
             document.getElementById('tab-register').className = tab === 'register' ? 'tab-btn active' : 'tab-btn';
             document.getElementById('btn-login-action').innerText = tab === 'login' ? '登入' : '註冊';
-            
             if(tab === 'register') {
                 document.getElementById('confirm-password').classList.remove('hidden');
-                document.getElementById('username').value = '';
-                document.getElementById('password').value = '';
-                document.getElementById('confirm-password').value = '';
-            } else {
-                document.getElementById('confirm-password').classList.add('hidden');
-            }
+                document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('confirm-password').value = '';
+            } else { document.getElementById('confirm-password').classList.add('hidden'); }
         };
 
         window.handleLoginAction = function() {
             const u = document.getElementById('username').value.trim();
             const p = document.getElementById('password').value.trim();
-            if(!u || !p) return alert("請輸入帳號與密碼");
-
+            if(!u || !p) return alert("請輸入帳號密碼");
             const db = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}');
 
             if (currentTab === 'register') {
                 const p2 = document.getElementById('confirm-password').value.trim();
-                if(p !== p2) return alert("密碼不一致！");
-                if(db[u]) return alert("帳號已存在。");
-                
+                if(p !== p2) return alert("密碼不一致");
+                if(db[u]) return alert("帳號已存在");
                 currentUser = u;
                 sessionStorage.setItem('temp_pass', p);
                 document.getElementById('login-modal').classList.add('hidden');
                 document.getElementById('setup-modal').classList.remove('hidden');
             } else {
-                if(!db[u] || db[u].password !== p) return alert("帳號或密碼錯誤");
+                if(!db[u] || db[u].password !== p) return alert("登入失敗");
                 currentUser = u;
                 loadGameData(db[u].data);
                 document.getElementById('login-modal').classList.add('hidden');
@@ -315,110 +287,72 @@
             if(!currentUser) return alert("未登入");
             const db = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}');
             const pass = sessionStorage.getItem('temp_pass') || (db[currentUser] ? db[currentUser].password : null);
-            
             if(!pass) return alert("驗證失敗");
-
-            db[currentUser] = {
-                password: pass,
-                data: { state, history: conversationHistory },
-                updated: new Date().toLocaleString()
-            };
+            db[currentUser] = { password: pass, data: { state, history: conversationHistory }, updated: new Date().toLocaleString() };
             localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(db));
-            alert(`存檔成功！(${currentUser})`);
+            alert(`已儲存！(${currentUser})`);
         };
 
-        // --- V58 Fix: Sync Modal Logic (Replaces Prompt) ---
-        let currentSyncMode = '';
-        
+        // --- Sync ---
         window.openSyncModal = function(mode) {
             if(mode === 'export') {
-                if(!currentUser) return alert("請先登入並存檔");
+                if(!currentUser) return alert("請先登入");
                 const db = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}');
-                if(!db[currentUser]) return alert("無存檔資料");
-                
-                const exportData = {
-                    user: currentUser,
-                    pass: db[currentUser].password,
-                    data: db[currentUser].data
-                };
-                
-                document.getElementById('sync-title').innerText = "📤 匯出代碼 (全選複製)";
+                if(!db[currentUser]) return alert("無存檔");
+                const exportData = { user: currentUser, pass: db[currentUser].password, data: db[currentUser].data };
+                document.getElementById('sync-title').innerText = "📤 匯出代碼";
                 document.getElementById('sync-code-area').value = safeEncode(JSON.stringify(exportData));
                 document.getElementById('sync-code-area').readOnly = true;
-                document.getElementById('sync-action-btn').innerText = "📋 複製代碼";
+                document.getElementById('sync-action-btn').innerText = "📋 複製";
                 document.getElementById('sync-action-btn').onclick = copySyncCode;
             } else {
                 document.getElementById('sync-title').innerText = "📥 匯入代碼";
                 document.getElementById('sync-code-area').value = "";
                 document.getElementById('sync-code-area').readOnly = false;
-                document.getElementById('sync-action-btn').innerText = "📥 讀取匯入";
+                document.getElementById('sync-action-btn').innerText = "📥 匯入";
                 document.getElementById('sync-action-btn').onclick = runImport;
             }
             document.getElementById('sync-modal').classList.remove('hidden');
         };
-
-        window.closeSyncModal = function() {
-            document.getElementById('sync-modal').classList.add('hidden');
-        };
-
+        window.closeSyncModal = function() { document.getElementById('sync-modal').classList.add('hidden'); };
         window.copySyncCode = function() {
-            const el = document.getElementById('sync-code-area');
-            el.select();
-            document.execCommand('copy'); // Legacy support
-            try { navigator.clipboard.writeText(el.value); } catch(e){}
-            alert("已複製到剪貼簿！");
+            const el = document.getElementById('sync-code-area'); el.select();
+            document.execCommand('copy'); try{navigator.clipboard.writeText(el.value);}catch(e){}
+            alert("已複製");
         };
-
         window.runImport = function() {
             const code = document.getElementById('sync-code-area').value.trim();
             if(!code) return;
             try {
                 const json = safeDecode(code);
                 const importData = JSON.parse(json);
-                if(!importData.user || !importData.data) throw new Error("格式不符");
-                
-                if(confirm(`匯入帳號 [${importData.user}]？(將覆蓋本機同名資料)`)) {
+                if(!importData.user) throw new Error("格式錯");
+                if(confirm(`匯入 [${importData.user}]?`)) {
                     const db = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}');
-                    db[importData.user] = {
-                        password: importData.pass,
-                        data: importData.data,
-                        updated: new Date().toLocaleString() + " (匯入)"
-                    };
+                    db[importData.user] = { password: importData.pass, data: importData.data, updated: new Date().toLocaleString() + " (Import)" };
                     localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(db));
-                    
                     currentUser = importData.user;
                     loadGameData(importData.data);
                     document.getElementById('login-modal').classList.add('hidden');
                     closeSyncModal();
-                    alert("匯入成功！");
+                    alert("匯入成功");
                 }
-            } catch(e) {
-                alert("匯入失敗：" + e.message);
-            }
+            } catch(e) { alert("匯入失敗:" + e.message); }
         };
+        window.logout = function() { if(confirm("登出?")) location.reload(); };
 
-        window.logout = function() {
-            if(confirm("登出？")) location.reload();
-        };
-
-        // --- 2. Character Setup ---
+        // --- Char Setup ---
         window.startCharacterCreation = function() {
             state.worldPrompt = document.getElementById('world-prompt').value.trim() || "D&D 5e";
             if(!window.USER_API_KEY) {
-                const inputKey = prompt("請輸入您的 Gemini API Key:", "");
-                if(inputKey) {
-                    window.USER_API_KEY = inputKey;
-                    localStorage.setItem('my_gemini_key_v1', inputKey);
-                } else {
-                    alert("請輸入 Key");
-                    return;
-                }
+                const inputKey = prompt("API Key:");
+                if(inputKey) { window.USER_API_KEY = inputKey; localStorage.setItem('my_gemini_key_v1', inputKey); }
+                else return alert("需要Key");
             }
             randomizeStats();
             document.getElementById('setup-modal').classList.add('hidden');
             document.getElementById('char-modal').classList.remove('hidden');
         }
-
         window.randomizeStats = function() {
             let min = parseInt(document.getElementById('stat-min').value)||72, max = parseInt(document.getElementById('stat-max').value)||80;
             if (min>max) [min,max]=[max,min];
@@ -428,57 +362,31 @@
             keys.forEach(k => state.stats[k] = base);
             let pts = target - (base * 6);
             let safe = 0;
-            while(pts > 0 && safe < 2000){ 
-                const k = keys[Math.floor(Math.random()*6)]; 
-                if(state.stats[k] < 18){ state.stats[k]++; pts--; } 
-                safe++;
-            }
+            while(pts > 0 && safe < 2000){ const k = keys[Math.floor(Math.random()*6)]; if(state.stats[k]<18){ state.stats[k]++; pts--; } safe++; }
             renderStatEditor();
         }
-
-        window.adjustStat = function(k, d) { 
-            state.stats[k] += d; 
-            if(state.stats[k] < 1) state.stats[k] = 1;
-            renderStatEditor(); 
-        }
+        window.adjustStat = function(k, d) { state.stats[k] += d; if(state.stats[k]<1) state.stats[k]=1; renderStatEditor(); }
         function getMod(v) { return Math.floor((v-10)/2); }
         function getModStr(v) { const m=getMod(v); return m>=0?`+${m}`:`${m}`; }
-
         function renderStatEditor() {
             const currentSum = Object.values(state.stats).reduce((a,b)=>a+b, 0);
-            let h=''; 
-            for(let k in state.stats){
-                h += `<div class="attr-edit-box">
-                        <div class="attr-lbl" style="width:60px;">${k.toUpperCase()}<br><span style="font-size:12px;color:#888;">${ATTR_MAP[k]}</span></div>
-                        <div class="attr-ctrl">
-                            <button class="attr-btn" onclick="adjustStat('${k}',-1)">-</button>
-                            <div class="attr-val">${state.stats[k]}</div>
-                            <button class="attr-btn" onclick="adjustStat('${k}',1)">+</button>
-                        </div>
-                        <div style="font-size:14px;color:var(--success);width:35px;text-align:right;">${getModStr(state.stats[k])}</div>
-                      </div>`;
+            let h=''; for(let k in state.stats){
+                h += `<div class="attr-edit-box"><div class="attr-lbl" style="width:60px;">${k.toUpperCase()}<br><span style="font-size:12px;color:#888;">${ATTR_MAP[k]}</span></div><div class="attr-ctrl"><button class="attr-btn" onclick="adjustStat('${k}',-1)">-</button><div class="attr-val">${state.stats[k]}</div><button class="attr-btn" onclick="adjustStat('${k}',1)">+</button></div><div style="font-size:14px;color:var(--success);width:35px;text-align:right;">${getModStr(state.stats[k])}</div></div>`;
             }
             document.getElementById('char-stats-editor').innerHTML=h;
-            
-            state.maxHp = 10 + getMod(state.stats.con); 
-            state.hp = state.maxHp;
-            state.maxMp = Math.max(1, getMod(state.stats.int) + getMod(state.stats.wis)); 
-            state.mp = state.maxMp;
-            
-            state.maxSan = 100; // Fixed SAN Cap
-            state.san = 90;
-
-            document.getElementById('derived-stats').innerHTML=`總和: ${currentSum} | HP: ${state.maxHp} | SAN: ${state.san}/${state.maxSan}`;
+            state.maxHp = 10 + getMod(state.stats.con); state.hp = state.maxHp;
+            state.maxMp = Math.max(1, getMod(state.stats.int) + getMod(state.stats.wis)); state.mp = state.maxMp;
+            state.maxSan = 100; state.san = 90;
+            document.getElementById('derived-stats').innerHTML=`總和: ${currentSum} | HP: ${state.maxHp} | SAN: ${state.san}`;
         }
-
         window.confirmStart = async function() {
             document.getElementById('char-modal').classList.add('hidden');
             updateUI();
-            addMsg("sys","正在初始化...");
+            addMsg("sys","初始化世界...");
             await detectModelAndStart();
         }
 
-        // --- 3. Core API ---
+        // --- Core API (V59 Prompt: Dice & Inv) ---
         async function detectModelAndStart() {
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
@@ -489,14 +397,12 @@
                 
                 const sysPrompt = `你是一個嚴格遵守 D&D 5e 規則的地下城主 (DM)。
 【核心指令】
-1. **禁止代擲**：絕對禁止幫玩家決定行動結果或擲骰。
-2. **判定格式**：請投擲 **骰子** 進行 [檢定名稱] (修正值 X, DC Y)。
-3. **SAN (理智) 系統**：
-   - SAN 值 0-100 (目前: ${state.san})。
-   - 遭遇恐怖時進行 SAN Check (感知豁免)。
-   - 失敗扣除 SAN，成功少扣或不扣。
-   - SAN < 50 需描述精神不穩或幻覺。
-4. **戰力控制**：嚴格控制。
+1. **禁止代擲**：絕對禁止幫玩家決定行動結果。
+2. **判定格式 (嚴格)**：當要求檢定時，**必須明確指出投擲 D20** 以及**相關屬性/技能**。
+   - 正確範例：「請投擲 **D20** 進行 **[感知 (察覺)]** 檢定 (修正值 -1, DC 12)」。
+3. **物品管理**：在 JSON 中使用 'add_item' 或 'remove_item' 來變更玩家物品。
+4. **SAN 系統**：0-100%，遭遇恐怖需 SAN Check。
+5. **戰力控制**：嚴格。
 
 【當前狀態】${JSON.stringify(state.stats)}
 
@@ -507,8 +413,9 @@
   "hp_change": 0,
   "mp_change": 0,
   "san_change": 0,
+  "add_item": "獲得物品名",
+  "remove_item": "移除物品名",
   "time": "...",
-  "weather": "...",
   "location": "...",
   "npcs": [{"name":"名字","rel":"關係"}],
   "story_options": ["選項1", "選項2"]
@@ -529,8 +436,9 @@
             const modInfo = Object.keys(state.stats).map(k => `${k.toUpperCase()}: ${getModStr(state.stats[k])}`).join(', ');
             let sanStatus = "正常";
             if (state.san < 20) sanStatus = "瘋狂"; else if (state.san < 50) sanStatus = "不穩";
+            const items = state.inventory.length > 0 ? state.inventory.join(', ') : "無";
 
-            const context = `[隱藏資訊: HP=${state.hp}, SAN=${state.san}/100 (${sanStatus}), 修正值={${modInfo}}, 時間=${state.time}, 地點=${state.location}]`;
+            const context = `[隱藏資訊: HP=${state.hp}, SAN=${state.san}, 物品=[${items}], 修正值={${modInfo}}, 時間=${state.time}, 地點=${state.location}]`;
             
             conversationHistory.push({role:"user", parts:[{text: txt + "\n" + context}]});
 
@@ -547,7 +455,7 @@
                 processAIResponse(aiTxt);
             } catch(e) {
                 document.getElementById('load-anim')?.remove();
-                addMsg("sys", `Error: ${e.message}`);
+                addMsg("sys", `API 錯誤: ${e.message}`);
             }
         }
 
@@ -560,6 +468,14 @@
                     if(u.hp_change) state.hp = Math.max(0, Math.min(state.maxHp, state.hp + u.hp_change));
                     if(u.mp_change) state.mp = Math.max(0, Math.min(state.maxMp, state.mp + u.mp_change));
                     if(u.san_change) state.san = Math.max(0, Math.min(100, state.san + u.san_change));
+                    
+                    // V59: Inventory Logic
+                    if(u.add_item && u.add_item.trim() !== "") state.inventory.push(u.add_item);
+                    if(u.remove_item && u.remove_item.trim() !== "") {
+                        const idx = state.inventory.indexOf(u.remove_item);
+                        if(idx > -1) state.inventory.splice(idx, 1);
+                    }
+
                     if(u.time) state.time = u.time; 
                     if(u.location) state.location = u.location;
                     if(u.npcs) state.npcs = u.npcs;
@@ -580,22 +496,14 @@
             if(!opts) return;
             opts.forEach(o => {
                 const b = document.createElement('button'); b.className='opt-btn'; b.innerText=o;
-                // Fix: Only fill input, don't send
-                b.onclick = () => { 
-                    const i = document.getElementById('user-input'); 
-                    i.value = o; 
-                    i.focus();
-                };
+                b.onclick = () => { document.getElementById('user-input').value = o; document.getElementById('user-input').focus(); };
                 c.appendChild(b);
             });
         }
 
         window.loadGameData = function(d) {
-            state = d.state;
-            conversationHistory = d.history;
-            const log = document.getElementById('chat-log');
-            log.innerHTML = '';
-            
+            state = d.state; conversationHistory = d.history;
+            const log = document.getElementById('chat-log'); log.innerHTML = '';
             conversationHistory.forEach(msg => {
                 if(msg.role === 'user' && msg.parts) {
                     let txt = msg.parts[0].text.split('\n[隱藏資訊')[0];
@@ -603,16 +511,12 @@
                 }
                 if(msg.role === 'model' && msg.parts) {
                      let txt = msg.parts[0].text;
-                     if(!txt.includes("遵命")) {
-                         txt = txt.replace(/```json[\s\S]*?```/g, '');
-                         addMsg('gm', marked.parse(txt));
-                     }
+                     if(!txt.includes("遵命")) { txt = txt.replace(/```json[\s\S]*?```/g, ''); addMsg('gm', marked.parse(txt)); }
                 }
             });
-
-            if(state.story_options && state.story_options.length > 0) renderOptions(state.story_options);
+            if(state.story_options) renderOptions(state.story_options);
             updateUI();
-            addMsg("sys", `歡迎回來，${currentUser}。存檔已讀取。`);
+            addMsg("sys", `歡迎回來，${currentUser}。存檔讀取成功。`);
             fetchModelOnly();
         };
 
@@ -634,14 +538,15 @@
             document.getElementById('san-bar').style.width = `${state.san}%`;
             document.getElementById('location-display').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${state.location}`;
             document.getElementById('time-display').innerText = state.time;
-            for(let k in state.stats){
-                const el = document.getElementById(`disp-${k}`);
-                if(el) el.innerHTML = `<div class="attr-val">${state.stats[k]}</div><div class="attr-mod">(${getModStr(state.stats[k])})</div>`;
-            }
+            for(let k in state.stats){ const el = document.getElementById(`disp-${k}`); if(el) el.innerHTML = `<div class="attr-val">${state.stats[k]}</div><div class="attr-mod">(${getModStr(state.stats[k])})</div>`; }
             const npcDiv = document.getElementById('npc-list');
-            if(state.npcs && state.npcs.length > 0) {
-                npcDiv.innerHTML = state.npcs.map(n => `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #333;padding:4px;"><span style="color:#bb86fc">${n.name}</span><span style="color:#888;font-size:13px;">${n.rel}</span></div>`).join('');
-            } else { npcDiv.innerHTML = "無重要 NPC"; }
+            if(state.npcs && state.npcs.length > 0) npcDiv.innerHTML = state.npcs.map(n => `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #333;padding:4px;"><span style="color:#bb86fc">${n.name}</span><span style="color:#888;font-size:13px;">${n.rel}</span></div>`).join('');
+            else npcDiv.innerHTML = "無重要 NPC";
+            
+            // V59: Inventory UI
+            const invDiv = document.getElementById('inv-list');
+            if(state.inventory && state.inventory.length > 0) invDiv.innerHTML = state.inventory.map(i => `<div style="border-bottom:1px solid #333;padding:4px;color:#eee;">${i}</div>`).join('');
+            else invDiv.innerHTML = "背包空空如也";
         }
 
         window.addMsg = function(r, h) { const l=document.getElementById('chat-log'); l.innerHTML+=`<div class="msg ${r}">${h}</div>`; l.scrollTop=l.scrollHeight; }
@@ -652,11 +557,9 @@
         window.removeDie = function(index) { diceBag.splice(index, 1); renderDice(); document.getElementById('btn-send-dice').style.display = 'none'; }
         window.renderDice = function() {
             const area = document.getElementById('active-dice-area'); area.innerHTML = ""; let total = 0;
-            diceBag.forEach((d, idx) => {
-                const div = document.createElement('div'); div.className = `die die-d${d.sides}`; div.innerText = d.val; div.onclick = () => removeDie(idx); area.appendChild(div); total += d.val;
-            });
+            diceBag.forEach((d, idx) => { const div = document.createElement('div'); div.className = `die die-d${d.sides}`; div.innerText = d.val; div.onclick = () => removeDie(idx); area.appendChild(div); total += d.val; });
             if(diceBag.length > 0) { document.getElementById('dice-total').innerText = `總和: ${total}`; document.getElementById('dice-total').style.display = 'block'; }
-            else { document.getElementById('dice-total').style.display = 'none'; area.innerHTML = '<div style="color:#888; font-size:14px;">點擊按鈕新增骰子</div>'; }
+            else { document.getElementById('dice-total').style.display = 'none'; area.innerHTML = '<div style="color:#888; font-size:14px;">點擊按鈕加入骰子</div>'; }
         }
         window.roll2DDice = function() {
             if(diceBag.length === 0) return;
