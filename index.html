@@ -2,230 +2,69 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V46 (Force Debug)</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的 3D 骰子展示</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: monospace; overflow: hidden; }
-        
-        /* 巨大的狀態顯示器 */
-        #loading-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 9999;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        body { margin: 0; background-color: #2b2b2b; color: white; font-family: sans-serif; text-align: center; }
+        h1 { padding: 20px; }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
         }
-        #status-text { font-size: 24px; color: #00ff00; margin-bottom: 20px; text-align: center; }
-        #error-log { 
-            width: 80%; height: 300px; border: 2px solid #ff0000; 
-            background: #220000; color: #ffaaaa; padding: 15px; 
-            overflow-y: scroll; font-size: 14px; white-space: pre-wrap;
-            display: none; /* 有錯才顯示 */
+        /* 設定每個骰子展示框的大小 */
+        model-viewer {
+            width: 300px;
+            height: 300px;
+            background-color: #444;
+            border-radius: 10px;
         }
-
-        #dice-stage { width: 100vw; height: 100vh; }
-        
-        /* 按鈕區 */
-        #controls {
-            position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 10px; z-index: 100;
-        }
-        button {
-            padding: 15px 25px; font-size: 16px; font-weight: bold; cursor: pointer;
-            background: #444; color: white; border: 1px solid #666; border-radius: 8px;
-        }
-        button:hover { background: #666; }
+        .label { margin-top: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="loading-screen">
-        <div id="status-text">正在連接系統...</div>
-        <div id="error-log"></div>
-        <button onclick="document.getElementById('loading-screen').style.display='none'" style="margin-top:20px;">關閉遮罩 (強制進入)</button>
+    <h1>RPG 骰子組展示</h1>
+
+    <div class="container">
+        <div>
+            <model-viewer src="d4_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
+            <div class="label">D4</div>
+        </div>
+        
+        <div>
+            <model-viewer src="d6_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
+            <div class="label">D6</div>
+        </div>
+
+        <div>
+            <model-viewer src="d8_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
+            <div class="label">D8</div>
+        </div>
+
+        <div>
+            <model-viewer src="d10_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
+            <div class="label">D10</div>
+        </div>
+
+        <div>
+            <model-viewer src="d12_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
+            <div class="label">D12</div>
+        </div>
+
+        <div>
+            <model-viewer src="d20_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
+            <div class="label">D20</div>
+        </div>
+
+        <div>
+            <model-viewer src="d100_low.glb" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
+            <div class="label">D100</div>
+        </div>
     </div>
 
-    <div id="dice-stage"></div>
-
-    <div id="controls">
-        <button onclick="showDice(4)">D4</button>
-        <button onclick="showDice(6)">D6</button>
-        <button onclick="showDice(8)">D8</button>
-        <button onclick="showDice(10)">D10</button>
-        <button onclick="showDice(12)">D12</button>
-        <button onclick="showDice(20)">D20</button>
-    </div>
-
-    <script type="module">
-        import * as THREE from 'three';
-        import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-        const STATUS = document.getElementById('status-text');
-        const ERROR_LOG = document.getElementById('error-log');
-
-        function logError(msg) {
-            STATUS.innerText = "⚠️ 發生錯誤 (請截圖給我)";
-            STATUS.style.color = "red";
-            ERROR_LOG.style.display = "block";
-            ERROR_LOG.innerText += msg + "\n";
-            console.error(msg);
-        }
-
-        function logInfo(msg) {
-            STATUS.innerText = msg;
-            console.log(msg);
-        }
-
-        // 3D 變數
-        let scene, camera, renderer, currentDice;
-        let diceModels = {}; 
-        let allMeshes = [];
-
-        function init() {
-            logInfo("1. 初始化 3D 環境...");
-            
-            const container = document.getElementById('dice-stage');
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x202020);
-
-            // 輔助線 (網格 + 座標軸)
-            scene.add(new THREE.GridHelper(20, 20));
-            scene.add(new THREE.AxesHelper(5));
-
-            // 燈光
-            const amb = new THREE.AmbientLight(0xffffff, 1.0);
-            scene.add(amb);
-            const dir = new THREE.DirectionalLight(0xffffff, 2.0);
-            dir.position.set(5, 10, 5);
-            scene.add(dir);
-
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, 5, 10);
-            camera.lookAt(0, 0, 0);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            container.appendChild(renderer.domElement);
-
-            const controls = new OrbitControls(camera, renderer.domElement);
-
-            // 載入 FBX
-            logInfo("2. 正在下載 Diceassembly.fbx ...");
-            const loader = new FBXLoader();
-            
-            loader.load('./Diceassembly.fbx', 
-                // 成功
-                (object) => {
-                    logInfo("3. 下載完成，正在解析模型...");
-                    
-                    let meshCount = 0;
-                    ERROR_LOG.style.display = 'block'; // 用來顯示找到的物件名
-                    ERROR_LOG.innerText = "=== 檔案內容分析 ===\n";
-
-                    object.traverse((child) => {
-                        if (child.isMesh) {
-                            child.visible = false;
-                            
-                            // 這裡顯示所有找到的名字
-                            ERROR_LOG.innerText += `✅ 發現 Mesh: ${child.name}\n`;
-                            
-                            // 強制材質 (避免全黑)
-                            child.material = new THREE.MeshStandardMaterial({
-                                color: 0x00aaff, // 亮藍色
-                                wireframe: false
-                            });
-
-                            // 歸零
-                            child.geometry.computeBoundingBox();
-                            const center = new THREE.Vector3();
-                            child.geometry.boundingBox.getCenter(center);
-                            child.geometry.translate(-center.x, -center.y, -center.z);
-                            child.scale.set(0.1, 0.1, 0.1); // 縮小一點
-                            
-                            allMeshes.push(child);
-                            meshCount++;
-                        } else {
-                            // 顯示非 Mesh 物件 (例如 Camera, Light)
-                            ERROR_LOG.innerText += `ℹ️ 發現其他物件: ${child.name} (${child.type})\n`;
-                        }
-                    });
-
-                    if (meshCount === 0) {
-                        logError("❌ 嚴重錯誤：FBX 檔案裡沒有 Mesh (模型)！\n可能是 Blender 匯出時沒選取物件。");
-                    } else {
-                        logInfo(`✅ 成功！找到 ${meshCount} 個模型。\n請點擊下方按鈕測試。`);
-                        setTimeout(() => {
-                            document.getElementById('loading-screen').style.display = 'none';
-                        }, 2000);
-                        
-                        // 自動分配 (盲抓)
-                        const order = [4, 6, 8, 10, 12, 20];
-                        allMeshes.forEach((mesh, index) => {
-                            if(index < 6) diceModels[order[index]] = mesh;
-                        });
-                    }
-                },
-                
-                // 進度
-                (xhr) => {
-                    if (xhr.lengthComputable) {
-                        const percent = Math.round((xhr.loaded / xhr.total) * 100);
-                        logInfo(`下載進度: ${percent}%`);
-                    }
-                },
-                
-                // 失敗
-                (error) => {
-                    logError("❌ 無法讀取檔案！\n請檢查：\n1. 檔名是否為 Diceassembly.fbx (大小寫要一樣)\n2. 檔案是否已上傳到正確位置\n3. GitHub Pages 是否已更新 (可能要等幾分鐘)");
-                }
-            );
-
-            animate();
-        }
-
-        window.showDice = function(sides) {
-            if (currentDice) scene.remove(currentDice);
-            
-            let mesh = diceModels[sides];
-            
-            // 如果沒抓到，用第一個頂替
-            if (!mesh && allMeshes.length > 0) {
-                mesh = allMeshes[0];
-                console.warn("使用備用模型");
-            }
-
-            if (mesh) {
-                mesh = mesh.clone();
-                mesh.visible = true;
-                scene.add(mesh);
-                currentDice = mesh;
-                
-                // 隨機旋轉
-                mesh.rotation.set(Math.random(), Math.random(), Math.random());
-            } else {
-                alert("沒有模型可以顯示！(請看錯誤訊息)");
-            }
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            if (currentDice) {
-                currentDice.rotation.y += 0.01;
-            }
-            renderer.render(scene, camera);
-        }
-
-        init();
-    </script>
 </body>
 </html>
