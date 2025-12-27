@@ -2,12 +2,12 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V50 (Gemini V39.1 Core Restored)</title>
+    <title>RPG Engine V52 (Mod Text Fix)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- 樣式維持不變 --- */
+        /* --- 樣式維持不變 (V39.1 標準) --- */
         :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --success: #03dac6; --warn: #cf6679; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
@@ -89,9 +89,9 @@
 
     <div id="setup-modal" class="modal">
         <div class="modal-box">
-            <h2 style="color:var(--accent); margin-top:0;">🚀 RPG Engine (Gemini Core)</h2>
+            <h2 style="color:var(--accent); margin-top:0;">🚀 RPG Engine (V52)</h2>
             <p>世界觀設定：</p>
-            <textarea id="world-prompt" rows="3" style="width:100%; background:#111; color:#fff; border:1px solid #444; padding:10px; border-radius:4px;" placeholder="例如：龍與地下城 D&D 5e，被詛咒的迷霧山谷..."></textarea>
+            <textarea id="world-prompt" rows="3" style="width:100%; background:#111; color:#fff; border:1px solid #444; padding:10px; border-radius:4px;" placeholder="例如：龍與地下城 D&D 5e..."></textarea>
             <button class="modal-btn" onclick="startCharacterCreation()">下一步：生成角色</button>
             <div style="margin-top:20px; border-top:1px solid #444; padding-top:10px;">
                 <p style="font-size:12px; color:#aaa;">讀取存檔：</p>
@@ -105,7 +105,7 @@
         <div class="modal-box">
             <h2 style="color:var(--success); margin-top:0;">🎲 屬性分配 (D&D 5e)</h2>
             <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
-                <span style="color:#aaa; font-size:13px;">屬性總和：</span>
+                <span style="color:#aaa; font-size:13px;">屬性總和範圍：</span>
                 <div><input type="number" id="stat-min" class="range-input" value="72"> - <input type="number" id="stat-max" class="range-input" value="80"></div>
             </div>
             <div id="char-stats-editor" class="attr-edit-grid" style="margin: 20px 0;"></div>
@@ -199,7 +199,7 @@
     </div>
 
     <script>
-        // --- V39.1 API Core + 需求修改 ---
+        // --- V39.1 API Core + V51 Stats Fix + V52 Mod Text Fix ---
         let confirmedModel = ""; 
         let conversationHistory = []; 
         let diceBag = []; 
@@ -214,24 +214,21 @@
 
         const ATTR_MAP = { str: '力量', dex: '敏捷', con: '體質', int: '智力', wis: '感知', cha: '魅力' };
 
-        // 初始化
         window.onload = function() {
-            // Enter 鍵綁定 (需求 3)
             document.getElementById('user-input').addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') sendMsg();
             });
 
-            // 使用 V39.1 的 Key 存儲名稱
             const cachedKey = localStorage.getItem('my_gemini_key_v1');
             if (cachedKey) window.USER_API_KEY = cachedKey;
 
-            const saved = localStorage.getItem('rpg_autosave_v50');
+            const saved = localStorage.getItem('rpg_autosave_v52');
             if (saved && confirm("偵測到存檔，要繼續嗎？")) {
                 loadGameData(JSON.parse(saved));
             }
         };
 
-        // --- 1. 骰子邏輯 (需求 1: 嚴格隨機) ---
+        // --- 1. 骰子邏輯 (嚴格隨機) ---
         window.add2DDie = function(sides) {
             diceBag.push({ sides: sides, val: sides });
             renderDice();
@@ -270,7 +267,7 @@
             setTimeout(() => {
                 let total = 0;
                 diceBag.forEach(d => {
-                    d.val = Math.floor(Math.random() * d.sides) + 1; // Math.random 隨機
+                    d.val = Math.floor(Math.random() * d.sides) + 1;
                     total += d.val;
                 });
                 renderDice();
@@ -312,26 +309,34 @@
             if (min>max) [min,max]=[max,min];
             const target = Math.floor(Math.random()*(max-min+1))+min;
             const keys=['str','dex','con','int','wis','cha'];
-            keys.forEach(k=>state.stats[k]=8);
-            let pts = target - 48;
+            
+            let base = 8;
+            if (target < 48) base = 1; // V51 修正
+            
+            keys.forEach(k => state.stats[k] = base);
+            let pts = target - (base * 6);
             let safe = 0;
-            while(pts > 0 && safe < 1000){ 
+            while(pts > 0 && safe < 2000){ 
                 const k = keys[Math.floor(Math.random()*6)]; 
                 if(state.stats[k] < 18){ state.stats[k]++; pts--; } 
                 safe++;
             }
-            renderStatEditor(target);
+            renderStatEditor();
         }
 
-        function adjustStat(k, d) { state.stats[k]+=d; renderStatEditor(); }
+        function adjustStat(k, d) { 
+            state.stats[k] += d; 
+            if(state.stats[k] < 1) state.stats[k] = 1;
+            renderStatEditor(); 
+        }
+        
         function getMod(v) { return Math.floor((v-10)/2); }
         function getModStr(v) { const m=getMod(v); return m>=0?`+${m}`:`${m}`; }
 
-        function renderStatEditor(sum) {
-            if(!sum) sum=Object.values(state.stats).reduce((a,b)=>a+b,0);
+        function renderStatEditor() {
+            const currentSum = Object.values(state.stats).reduce((a,b)=>a+b, 0);
             let h=''; 
             for(let k in state.stats){
-                // 需求 0: 英文 + 中文
                 h += `<div class="attr-edit-box">
                         <div class="attr-lbl" style="width:50px;">${k.toUpperCase()}<br><span style="font-size:10px;color:#888;">${ATTR_MAP[k]}</span></div>
                         <div class="attr-ctrl">
@@ -345,7 +350,8 @@
             document.getElementById('char-stats-editor').innerHTML=h;
             state.maxHp = 10 + getMod(state.stats.con); state.hp = state.maxHp;
             state.maxMp = Math.max(1, getMod(state.stats.int) + getMod(state.stats.wis)); state.mp = state.maxMp;
-            document.getElementById('derived-stats').innerHTML=`總和: ${sum} | 初始 HP: ${state.maxHp}`;
+            
+            document.getElementById('derived-stats').innerHTML=`真實總和: ${currentSum} | 初始 HP: ${state.maxHp}`;
         }
 
         async function confirmStart() {
@@ -355,22 +361,23 @@
             await detectModelAndStart();
         }
 
-        // --- 3. API 邏輯 (完全還原 V39.1 Gemini 寫法) ---
+        // --- 3. API 邏輯 (V39.1) ---
         async function detectModelAndStart() {
             try {
-                // V39.1 的模型偵測邏輯
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
                 const data = await res.json();
                 const m = (data.models||[]).find(x=>x.name.includes("gemini-1.5-flash")||x.name.includes("gemini-pro"));
-                if(!m) throw new Error("API Key 無效或額度不足 (找不到 gemini 模型)");
+                if(!m) throw new Error("API Key 無效或額度不足");
                 confirmedModel = m.name.replace("models/","");
                 
-                // 需求 2: 嚴謹 D&D System Prompt
+                // V52: 修正 System Prompt，強制要求列出修正值
                 const sysPrompt = `你是一個嚴格遵守 D&D 5e 規則的地下城主 (DM)。
 【核心指令】
 1. **世界動態**：世界必須獨立運轉，NPC 有動機，不能因為玩家閒置而停止。
-2. **禁止代擲**：**絕對禁止**幫玩家決定行動結果或擲骰。若需判定，請輸出「請進行 [檢定名稱] (DC XX)」，並停止生成。
-3. **判定結果**：請根據玩家回報的骰子數值 (含調整值) 對比 DC 來決定成敗。
+2. **禁止代擲**：**絕對禁止**幫玩家決定行動結果或擲骰。
+3. **判定與修正**：當要求檢定時，**必須**在文本中明確列出該屬性的修正值。
+   - 錯誤範例：「請進行察覺檢定 (DC 15)」
+   - 正確範例：「請進行 [感知 (察覺)] 檢定 (**修正值 -1**, DC 15)」
 4. **戰力控制**：嚴格控制屬性與物品獲取。
 5. **沉浸感**：意外事件需有邏輯鋪墊。
 
@@ -391,8 +398,7 @@
 \`\`\`
 世界觀：「${state.worldPrompt}」。請開始。`;
                 
-                // Gemini 對話格式: { role: "user", parts: [{ text: ... }] }
-                conversationHistory = [{role:"user", parts:[{text:sysPrompt}]}, {role:"model", parts:[{text:"遵命，我將嚴格執行 D&D 規則。"}]}];
+                conversationHistory = [{role:"user", parts:[{text:sysPrompt}]}, {role:"model", parts:[{text:"遵命，我將嚴格執行 D&D 規則，並在檢定時明確提示修正值。"}]}];
                 await callAI(`(冒險開始)`);
             } catch(e) { alert("啟動失敗: " + e.message); }
         }
@@ -401,11 +407,16 @@
             const log = document.getElementById('chat-log');
             log.innerHTML += `<div id="load-anim" class="msg gm">DM 正在思考...</div>`; log.scrollTop=log.scrollHeight;
             
-            const context = `[隱藏資訊: HP=${state.hp}, 時間=${state.time}, 地點=${state.location}]`;
+            // V52: 自動生成當前所有屬性的修正值清單，並注入到 Context 中
+            const modInfo = Object.keys(state.stats).map(k => {
+                return `${k.toUpperCase()}: ${getModStr(state.stats[k])}`;
+            }).join(', ');
+
+            const context = `[隱藏資訊: HP=${state.hp}, 當前修正值={${modInfo}}, 時間=${state.time}, 地點=${state.location}]`;
+            
             conversationHistory.push({role:"user", parts:[{text: txt + "\n" + context}]});
 
             try {
-                // V39.1 的發送邏輯 (generativelanguage.googleapis.com)
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${confirmedModel}:generateContent?key=${window.USER_API_KEY}`, {
                     method:'POST', 
                     headers:{'Content-Type':'application/json'}, 
@@ -442,7 +453,7 @@
                     if(u.location) state.location = u.location;
                     if(u.npcs) state.npcs = u.npcs;
                     if(u.story_options) renderOptions(u.story_options);
-                    localStorage.setItem('rpg_autosave_v50', JSON.stringify({state, history:conversationHistory}));
+                    localStorage.setItem('rpg_autosave_v52', JSON.stringify({state, history:conversationHistory}));
                     displayTxt = txt.replace(jsonMatch[0], "");
                 } catch(e){}
             }
@@ -481,7 +492,7 @@
         window.saveToCode = () => prompt("存檔碼:", btoa(encodeURIComponent(JSON.stringify({state, history:conversationHistory}))));
         window.loadFromCode = () => { try{ loadGameData(JSON.parse(decodeURIComponent(atob(document.getElementById('load-code').value)))); }catch(e){alert("無效代碼");} };
         window.loadGameData = (d) => { state=d.state; conversationHistory=d.history; document.getElementById('setup-modal').classList.add('hidden'); updateUI(); if(!confirmedModel) detectModelAndStart().catch(()=>{}); };
-        window.resetGame = () => { if(confirm("確定重置?")) { localStorage.removeItem('rpg_autosave_v50'); location.reload(); } };
+        window.resetGame = () => { if(confirm("確定重置?")) { localStorage.removeItem('rpg_autosave_v52'); location.reload(); } };
     </script>
 </body>
 </html>
