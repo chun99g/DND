@@ -2,12 +2,12 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V59 (Inv & Dice Fix)</title>
+    <title>RPG Engine V60 (Immersive Narrative)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- V59: 樣式維持 V58 大字體 --- */
+        /* --- V60: 樣式維持 V58 大字體 --- */
         :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --success: #03dac6; --warn: #cf6679; }
         body { margin: 0; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; font-size: 16px; }
 
@@ -24,15 +24,15 @@
         .stat-row { display: flex; justify-content: space-between; font-size: 15px; margin-bottom: 4px; }
 
         .header-bar { padding: 12px 24px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 15px; color: #aaa; }
-        .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 18px; line-height: 1.7; padding-bottom: 100px; }
-        .msg { margin-bottom: 24px; max-width: 90%; padding: 15px 20px; border-radius: 10px; animation: fadeIn 0.3s; }
-        .msg.gm { background: #252525; border-left: 5px solid var(--accent); color: #e5e5e5; }
+        .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 18px; line-height: 1.8; padding-bottom: 100px; } /* 行距加大 */
+        .msg { margin-bottom: 24px; max-width: 90%; padding: 20px 25px; border-radius: 10px; animation: fadeIn 0.3s; }
+        .msg.gm { background: #252525; border-left: 5px solid var(--accent); color: #e5e5e5; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .msg.user { background: #3d2c5e; color: #fff; margin-left: auto; text-align: right; }
         .msg.sys { background: rgba(3, 218, 198, 0.1); color: var(--success); font-size: 15px; text-align: center; max-width: 95%; border: 1px dashed var(--success); margin: 15px auto; }
         
         .options-container { padding: 15px; background: #181818; display: flex; flex-wrap: wrap; gap: 10px; border-top: 1px solid #333; min-height: 60px; }
-        .opt-btn { background: #2a2a2a; color: #ccc; border: 1px solid #444; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 15px; transition: 0.2s; text-align: left; }
-        .opt-btn:hover { background: #333; color: var(--accent); border-color: var(--accent); }
+        .opt-btn { background: #2a2a2a; color: #ccc; border: 1px solid #444; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 15px; transition: 0.2s; text-align: left; }
+        .opt-btn:hover { background: #333; color: var(--accent); border-color: var(--accent); transform: translateY(-2px); }
 
         .input-area { padding: 20px; background: #181818; display: flex; gap: 12px; }
         input[type="text"], textarea { flex: 1; padding: 14px; background: #252525; border: 1px solid #444; color: white; border-radius: 8px; outline: none; font-size: 16px; }
@@ -93,7 +93,7 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-box" style="width: 400px;">
-            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V59</h2>
+            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V60</h2>
             <div class="login-tabs">
                 <button id="tab-login" class="tab-btn active" onclick="switchTab('login')">登入</button>
                 <button id="tab-register" class="tab-btn" onclick="switchTab('register')">註冊</button>
@@ -109,7 +109,7 @@
     <div id="setup-modal" class="modal hidden">
         <div class="modal-box">
             <h2 style="color:var(--accent); margin-top:0;">📖 建立新冒險</h2>
-            <textarea id="world-prompt" rows="3" style="width:100%; background:#111; color:#fff; border:1px solid #444; padding:12px; border-radius:6px; font-size:16px;" placeholder="例如：克蘇魯神話，1920年代倫敦..."></textarea>
+            <textarea id="world-prompt" rows="3" style="width:100%; background:#111; color:#fff; border:1px solid #444; padding:12px; border-radius:6px; font-size:16px;" placeholder="例如：18世紀的倫敦，陰雨連綿，開膛手傑克的傳說..."></textarea>
             <button class="modal-btn" onclick="startCharacterCreation()">下一步</button>
         </div>
     </div>
@@ -220,7 +220,7 @@
     </div>
 
     <script>
-        // --- V59: Inventory Fix, Dice Instruction Fix, Sync Fix ---
+        // --- V60: Immersive Narrative, High Temperature, Anti-Cliché ---
         let confirmedModel = ""; 
         let conversationHistory = []; 
         let diceBag = []; 
@@ -237,7 +237,7 @@
         
         let state = JSON.parse(JSON.stringify(initialState));
         const ATTR_MAP = { str: '力量', dex: '敏捷', con: '體質', int: '智力', wis: '感知', cha: '魅力' };
-        const ACCOUNTS_KEY = 'rpg_local_accounts_v59'; // Updated Key
+        const ACCOUNTS_KEY = 'rpg_local_accounts_v60'; // Updated Key for V60
 
         function safeEncode(str) { return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1))); }
         function safeDecode(str) { return decodeURIComponent(Array.prototype.map.call(window.atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')); }
@@ -382,11 +382,11 @@
         window.confirmStart = async function() {
             document.getElementById('char-modal').classList.add('hidden');
             updateUI();
-            addMsg("sys","初始化世界...");
+            addMsg("sys","正在構建世界 (高創造力模式)...");
             await detectModelAndStart();
         }
 
-        // --- Core API (V59 Prompt: Dice & Inv) ---
+        // --- Core API (V60: High Temp & Literary Prompt) ---
         async function detectModelAndStart() {
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
@@ -395,14 +395,19 @@
                 if(!m) throw new Error("API Key 無效");
                 confirmedModel = m.name.replace("models/","");
                 
-                const sysPrompt = `你是一個嚴格遵守 D&D 5e 規則的地下城主 (DM)。
-【核心指令】
-1. **禁止代擲**：絕對禁止幫玩家決定行動結果。
-2. **判定格式 (嚴格)**：當要求檢定時，**必須明確指出投擲 D20** 以及**相關屬性/技能**。
-   - 正確範例：「請投擲 **D20** 進行 **[感知 (察覺)]** 檢定 (修正值 -1, DC 12)」。
-3. **物品管理**：在 JSON 中使用 'add_item' 或 'remove_item' 來變更玩家物品。
-4. **SAN 系統**：0-100%，遭遇恐怖需 SAN Check。
-5. **戰力控制**：嚴格。
+                // V60 PROMPT: LITERARY STYLE
+                const sysPrompt = `你是一位榮獲文學獎的黑暗奇幻小說家，同時也是 D&D 5e 的地下城主 (DM)。
+【風格指令】
+1. **嚴禁陳腔濫調**：絕對禁止使用「你在一陣刺痛中醒來」、「四周一片漆黑」等開場。請使用「In Media Res」(從事件中途開始) 或獨特的場景開場。
+2. **沉浸式描寫**：請大量描寫環境的氣味、質地、微小的聲音、光影的變化。文本長度必須充足（每次回應至少 300 字以上），營造強烈的氛圍。
+3. **Show, Don't Tell**：不要只說「你很害怕」，要描寫「你的手止不住地顫抖，冷汗滑過背脊」。
+
+【規則指令】
+1. **禁止代擲**：絕對禁止幫玩家決定行動。
+2. **判定格式**：當要求檢定時，**必須明確指出投擲 D20** 以及**相關屬性**。
+   - 格式：「請投擲 **D20** 進行 **[感知 (察覺)]** 檢定 (修正值 -1, DC 12)」。
+3. **物品管理**：在 JSON 中使用 'add_item'/'remove_item'。
+4. **SAN 系統**：0-100%。遭遇恐怖需 SAN Check。
 
 【當前狀態】${JSON.stringify(state.stats)}
 
@@ -413,17 +418,17 @@
   "hp_change": 0,
   "mp_change": 0,
   "san_change": 0,
-  "add_item": "獲得物品名",
-  "remove_item": "移除物品名",
+  "add_item": "",
+  "remove_item": "",
   "time": "...",
   "location": "...",
   "npcs": [{"name":"名字","rel":"關係"}],
-  "story_options": ["選項1", "選項2"]
+  "story_options": ["選項1 (大膽)", "選項2 (謹慎)", "選項3 (觀察)"]
 }
 \`\`\`
-世界觀：「${state.worldPrompt}」。請開始。`;
+世界觀：「${state.worldPrompt}」。請以極具創意的方式開始故事。`;
                 
-                conversationHistory = [{role:"user", parts:[{text:sysPrompt}]}, {role:"model", parts:[{text:"遵命。"}]}];
+                conversationHistory = [{role:"user", parts:[{text:sysPrompt}]}, {role:"model", parts:[{text:"遵命，我將為您編織一段刻骨銘心的冒險。"}]}];
                 await callAI(`(冒險開始)`);
                 saveToAccount();
             } catch(e) { alert("啟動失敗: " + e.message); }
@@ -431,21 +436,22 @@
 
         async function callAI(txt) {
             const log = document.getElementById('chat-log');
-            log.innerHTML += `<div id="load-anim" class="msg gm">DM 正在思考...</div>`; log.scrollTop=log.scrollHeight;
+            log.innerHTML += `<div id="load-anim" class="msg gm">DM 正在構思劇情...</div>`; log.scrollTop=log.scrollHeight;
             
             const modInfo = Object.keys(state.stats).map(k => `${k.toUpperCase()}: ${getModStr(state.stats[k])}`).join(', ');
             let sanStatus = "正常";
             if (state.san < 20) sanStatus = "瘋狂"; else if (state.san < 50) sanStatus = "不穩";
             const items = state.inventory.length > 0 ? state.inventory.join(', ') : "無";
 
-            const context = `[隱藏資訊: HP=${state.hp}, SAN=${state.san}, 物品=[${items}], 修正值={${modInfo}}, 時間=${state.time}, 地點=${state.location}]`;
+            const context = `[隱藏資訊: HP=${state.hp}, SAN=${state.san}/100, 物品=[${items}], 修正值={${modInfo}}, 時間=${state.time}, 地點=${state.location}]`;
             
             conversationHistory.push({role:"user", parts:[{text: txt + "\n" + context}]});
 
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${confirmedModel}:generateContent?key=${window.USER_API_KEY}`, {
                     method:'POST', headers:{'Content-Type':'application/json'}, 
-                    body:JSON.stringify({ contents: conversationHistory, generationConfig: { temperature: 0.7 } })
+                    // V60: Temperature increased to 0.9 for creativity
+                    body:JSON.stringify({ contents: conversationHistory, generationConfig: { temperature: 0.9 } })
                 });
                 const data = await res.json();
                 document.getElementById('load-anim').remove();
@@ -469,7 +475,6 @@
                     if(u.mp_change) state.mp = Math.max(0, Math.min(state.maxMp, state.mp + u.mp_change));
                     if(u.san_change) state.san = Math.max(0, Math.min(100, state.san + u.san_change));
                     
-                    // V59: Inventory Logic
                     if(u.add_item && u.add_item.trim() !== "") state.inventory.push(u.add_item);
                     if(u.remove_item && u.remove_item.trim() !== "") {
                         const idx = state.inventory.indexOf(u.remove_item);
@@ -543,7 +548,6 @@
             if(state.npcs && state.npcs.length > 0) npcDiv.innerHTML = state.npcs.map(n => `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #333;padding:4px;"><span style="color:#bb86fc">${n.name}</span><span style="color:#888;font-size:13px;">${n.rel}</span></div>`).join('');
             else npcDiv.innerHTML = "無重要 NPC";
             
-            // V59: Inventory UI
             const invDiv = document.getElementById('inv-list');
             if(state.inventory && state.inventory.length > 0) invDiv.innerHTML = state.inventory.map(i => `<div style="border-bottom:1px solid #333;padding:4px;color:#eee;">${i}</div>`).join('');
             else invDiv.innerHTML = "背包空空如也";
