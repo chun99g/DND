@@ -2,12 +2,12 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Engine V56 (Login System & SAN Logic)</title>
+    <title>RPG Engine V57 (Sync & SAN Fix)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- V56: 保持大字體與優化介面 --- */
+        /* --- 樣式設定 --- */
         :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --success: #03dac6; --warn: #cf6679; --danger: #ff5252; }
         body { margin: 0; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; font-size: 16px; }
 
@@ -41,7 +41,7 @@
 
         /* Modal Enhancements */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
-        .modal-box { background: #252525; width: 500px; padding: 35px; border-radius: 12px; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .modal-box { background: #252525; width: 450px; padding: 35px; border-radius: 12px; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .modal-btn { width: 100%; padding: 12px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 16px; }
         
         /* Login Tabs */
@@ -96,21 +96,22 @@
 <body>
 
     <div id="login-modal" class="modal">
-        <div class="modal-box" style="width: 400px;">
-            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V56</h2>
+        <div class="modal-box">
+            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V57</h2>
             <div class="login-tabs">
-                <button id="tab-login" class="tab-btn active" onclick="switchTab('login')">登入存檔</button>
+                <button id="tab-login" class="tab-btn active" onclick="switchTab('login')">登入</button>
                 <button id="tab-register" class="tab-btn" onclick="switchTab('register')">註冊新檔</button>
             </div>
             
             <input type="text" id="username" class="login-input" placeholder="帳號 (Username)">
             <input type="password" id="password" class="login-input" placeholder="密碼 (Password)">
             
+            <input type="password" id="confirm-password" class="login-input hidden" placeholder="確認密碼 (Confirm Password)">
+            
             <button id="btn-login-action" class="modal-btn" onclick="handleLoginAction()">登入並讀取</button>
             
             <p style="font-size:12px; color:#666; margin-top:15px; text-align:center;">
-                * 注意：帳號資料僅儲存於此瀏覽器 (Local Storage)。<br>
-                若要新建角色請選擇「註冊新檔」。
+                * 注意：帳號資料儲存於本機。跨裝置請使用「匯出進度」。
             </p>
         </div>
     </div>
@@ -176,7 +177,7 @@
                     <div class="stat-row"><span>MP (魔力/體能)</span> <span id="mp-txt">--/--</span></div>
                     <div class="bar-wrap"><div id="mp-bar" class="bar-fill" style="width:100%; background:#03dac6;"></div></div>
                     
-                    <div class="stat-row"><span style="color:#bb86fc;">SAN (理智)</span> <span id="san-txt">--/--</span></div>
+                    <div class="stat-row"><span style="color:#bb86fc;">SAN (理智 %)</span> <span id="san-txt">--/--</span></div>
                     <div class="bar-wrap"><div id="san-bar" class="bar-fill" style="width:100%; background:#bb86fc;"></div></div>
                 </div>
                 
@@ -208,7 +209,10 @@
                     <span id="time-display" style="margin-left: 15px; color:#888;">初始</span>
                 </div>
                 <div>
-                    <button class="menu-btn" onclick="saveToAccount()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;" title="儲存至帳號">☁️ 存檔</button>
+                    <button class="menu-btn" onclick="exportSave()" style="color:#ccc; margin-right:5px; background:none;border:none;cursor:pointer;font-size:16px;" title="產生跨裝置代碼">📤 匯出</button>
+                    <button class="menu-btn" onclick="importSave()" style="color:#ccc; margin-right:15px; background:none;border:none;cursor:pointer;font-size:16px;" title="貼上跨裝置代碼">📥 匯入</button>
+                    
+                    <button class="menu-btn" onclick="saveToAccount()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;" title="儲存至本機帳號">☁️ 存檔</button>
                     <button class="menu-btn" onclick="logout()" style="color:#f55; margin-left:10px; background:none;border:none;cursor:pointer;font-size:16px;" title="登出">🚪 登出</button>
                 </div>
             </div>
@@ -224,17 +228,17 @@
     </div>
 
     <script>
-        // --- V56: Login System, SAN Logic, Prevent Auto-Gen ---
+        // --- V57: Sync Fix, SAN Logic Fix, Option Auto-Send Fix ---
         let confirmedModel = ""; 
         let conversationHistory = []; 
         let diceBag = []; 
         let lastDiceTotal = 0;
-        let currentUser = null; // 當前登入使用者
+        let currentUser = null; 
 
-        // 初始狀態樣板
+        // 初始狀態
         const initialState = { 
             hp: 10, maxHp: 10, mp: 10, maxMp: 10, mpLabel: "MP", 
-            san: 100, maxSan: 100, // SAN 系統
+            san: 90, maxSan: 100, // V57: SAN 改為固定上限 100
             stats: { str:10, dex:10, con:10, int:10, wis:10, cha:10 }, 
             inventory: [], npcs: [], 
             story_options: [], 
@@ -243,9 +247,20 @@
         
         let state = JSON.parse(JSON.stringify(initialState));
         const ATTR_MAP = { str: '力量', dex: '敏捷', con: '體質', int: '智力', wis: '感知', cha: '魅力' };
-        const ACCOUNTS_KEY = 'rpg_local_accounts_v56';
+        const ACCOUNTS_KEY = 'rpg_local_accounts_v57';
 
-        // --- 1. 帳號系統 (Local Simulation) ---
+        // Encoding helpers
+        function safeEncode(str) {
+            return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+                return String.fromCharCode('0x' + p1);
+            }));
+        }
+        function safeDecode(str) {
+            return decodeURIComponent(Array.prototype.map.call(window.atob(str), function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
+
         window.onload = function() {
             document.getElementById('user-input').addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') sendMsg();
@@ -254,6 +269,7 @@
             if (cachedKey) window.USER_API_KEY = cachedKey;
         };
 
+        // --- 1. 帳號 & 同步系統 ---
         let currentTab = 'login';
         window.switchTab = function(tab) {
             currentTab = tab;
@@ -261,10 +277,14 @@
             document.getElementById('tab-register').className = tab === 'register' ? 'tab-btn active' : 'tab-btn';
             document.getElementById('btn-login-action').innerText = tab === 'login' ? '登入並讀取' : '註冊並開始';
             
-            // 註冊時清空輸入框以免混淆
+            // V57: 顯示/隱藏確認密碼
             if(tab === 'register') {
+                document.getElementById('confirm-password').classList.remove('hidden');
                 document.getElementById('username').value = '';
                 document.getElementById('password').value = '';
+                document.getElementById('confirm-password').value = '';
+            } else {
+                document.getElementById('confirm-password').classList.add('hidden');
             }
         };
 
@@ -276,18 +296,19 @@
             const db = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}');
 
             if (currentTab === 'register') {
-                if(db[u]) return alert("帳號已存在，請改用登入或更換帳號。");
-                // 註冊：先不存檔，只是檢查通過，進入角色創建
+                // V57: 密碼確認邏輯
+                const p2 = document.getElementById('confirm-password').value.trim();
+                if(p !== p2) return alert("兩次密碼輸入不一致！");
+                if(db[u]) return alert("帳號已存在。");
+                
                 currentUser = u;
-                // 暫存密碼以便創建後儲存
                 sessionStorage.setItem('temp_pass', p);
                 document.getElementById('login-modal').classList.add('hidden');
-                document.getElementById('setup-modal').classList.remove('hidden'); // 開始新遊戲流程
+                document.getElementById('setup-modal').classList.remove('hidden');
             } else {
-                // 登入
                 if(!db[u] || db[u].password !== p) return alert("帳號或密碼錯誤");
                 currentUser = u;
-                loadGameData(db[u].data); // 直接讀取存檔
+                loadGameData(db[u].data);
                 document.getElementById('login-modal').classList.add('hidden');
             }
         };
@@ -295,7 +316,6 @@
         window.saveToAccount = function() {
             if(!currentUser) return alert("未登入");
             const db = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}');
-            // 如果是新註冊，密碼可能在 sessionStorage，若是舊帳號則用舊密碼
             const pass = sessionStorage.getItem('temp_pass') || (db[currentUser] ? db[currentUser].password : null);
             
             if(!pass) return alert("存檔錯誤：無法驗證身分");
@@ -306,16 +326,64 @@
                 updated: new Date().toLocaleString()
             };
             localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(db));
-            alert(`存檔成功！\n帳號: ${currentUser}\n時間: ${db[currentUser].updated}`);
+            alert(`存檔成功！\n帳號: ${currentUser}`);
         };
 
-        window.logout = function() {
-            if(confirm("確定要登出並回到主畫面嗎？(未儲存的進度將遺失)")) {
-                location.reload();
+        // V57: 匯出匯入功能 (跨裝置)
+        window.exportSave = function() {
+            if(!currentUser) return alert("請先登入");
+            const db = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}');
+            if(!db[currentUser]) return alert("尚未有存檔紀錄，請先點擊存檔");
+            
+            // 打包使用者資料
+            const exportData = {
+                user: currentUser,
+                pass: db[currentUser].password,
+                data: db[currentUser].data
+            };
+            const code = safeEncode(JSON.stringify(exportData));
+            prompt("請複製此代碼 (可在另一台裝置匯入):", code);
+        };
+
+        window.importSave = function() {
+            const code = prompt("請貼上匯出代碼:");
+            if(!code) return;
+            try {
+                const json = safeDecode(code);
+                const importData = JSON.parse(json);
+                
+                if(!importData.user || !importData.data) throw new Error("格式錯誤");
+                
+                // 確認是否要覆蓋
+                if(confirm(`確定要匯入帳號 [${importData.user}] 的進度嗎？\n這將會覆蓋本機同名帳號的資料。`)) {
+                    const db = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}');
+                    db[importData.user] = {
+                        password: importData.pass,
+                        data: importData.data,
+                        updated: new Date().toLocaleString() + " (Imported)"
+                    };
+                    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(db));
+                    
+                    // 如果剛好是當前使用者，直接讀取
+                    if(currentUser === importData.user || !currentUser) {
+                        currentUser = importData.user;
+                        loadGameData(importData.data);
+                        document.getElementById('login-modal').classList.add('hidden');
+                        alert("匯入並讀取成功！");
+                    } else {
+                        alert("匯入成功，請重新登入該帳號。");
+                    }
+                }
+            } catch(e) {
+                alert("匯入失敗：" + e.message);
             }
         };
 
-        // --- 2. 角色設定與 SAN 值計算 ---
+        window.logout = function() {
+            if(confirm("確定要登出嗎？")) location.reload();
+        };
+
+        // --- 2. 角色設定 ---
         window.startCharacterCreation = function() {
             state.worldPrompt = document.getElementById('world-prompt').value.trim() || "D&D 5e";
             if(!window.USER_API_KEY) {
@@ -324,7 +392,7 @@
                     window.USER_API_KEY = inputKey;
                     localStorage.setItem('my_gemini_key_v1', inputKey);
                 } else {
-                    alert("需要 Key 才能運作。");
+                    alert("需要 Key。");
                     return;
                 }
             }
@@ -374,28 +442,26 @@
             }
             document.getElementById('char-stats-editor').innerHTML=h;
             
-            // 計算衍生數值
             state.maxHp = 10 + getMod(state.stats.con); 
             state.hp = state.maxHp;
             state.maxMp = Math.max(1, getMod(state.stats.int) + getMod(state.stats.wis)); 
             state.mp = state.maxMp;
             
-            // V56: SAN = (WIS + INT) * 4 (上限 100)
-            // 邏輯：智力和感知越高，理解世界的san值上限越高（但也可能因為理解太多而瘋得快，這裡先做基礎上限）
-            state.maxSan = Math.min(100, (state.stats.wis + state.stats.int) * 4);
-            state.san = state.maxSan;
+            // V57: SAN 上限固定 100，初始給 90
+            state.maxSan = 100;
+            state.san = 90;
 
-            document.getElementById('derived-stats').innerHTML=`總和: ${currentSum} | HP: ${state.maxHp} | SAN: ${state.maxSan}`;
+            document.getElementById('derived-stats').innerHTML=`總和: ${currentSum} | HP: ${state.maxHp} | SAN: ${state.san}/${state.maxSan}`;
         }
 
         window.confirmStart = async function() {
             document.getElementById('char-modal').classList.add('hidden');
             updateUI();
-            addMsg("sys","正在初始化世界與 SAN 值系統...");
+            addMsg("sys","初始化世界與 SAN 值 (CoC 模式)...");
             await detectModelAndStart();
         }
 
-        // --- 3. 核心 API 與 System Prompt (SAN 規則) ---
+        // --- 3. API Logic ---
         async function detectModelAndStart() {
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
@@ -404,24 +470,23 @@
                 if(!m) throw new Error("API Key 無效");
                 confirmedModel = m.name.replace("models/","");
                 
-                // V56 System Prompt: 加入 SAN 規則
+                // V57 System Prompt: SAN 百分比制
                 const sysPrompt = `你是一個嚴格遵守 D&D 5e 規則的地下城主 (DM)。
 【核心指令】
-1. **世界動態**：世界必須獨立運轉，NPC 有動機。
-2. **禁止代擲**：**絕對禁止**幫玩家決定行動結果或擲骰。
-3. **判定格式**：請投擲 **骰子** 進行 [檢定名稱] (修正值 X, DC Y)。
-4. **SAN (理智) 系統**：
-   - 當玩家遭遇恐怖、超自然或不可名狀之事物時，要求進行 **SAN Check** (通常為感知豁免)。
-   - 失敗則扣除 SAN 值 (如 1d4 或 1d10)。
-   - **SAN < 50**：描述需帶有輕微幻覺、多疑或陰森感。
-   - **SAN < 20**：玩家陷入瘋狂，智力與感知檢定處於**劣勢**，描述需極度混亂恐怖。
-   - **SAN = 0**：永久瘋狂或死亡。
-5. **沉浸感**：意外事件需有邏輯鋪墊。
+1. **禁止代擲**：**絕對禁止**幫玩家決定行動結果或擲骰。
+2. **判定格式**：請投擲 **骰子** 進行 [檢定名稱] (修正值 X, DC Y)。
+3. **SAN (理智) 系統 (類 CoC)**：
+   - SAN 值為 **0-100** 的百分比數值 (目前: ${state.san}/100)。
+   - 遭遇恐怖時，要求玩家進行 **SAN Check** (使用 感知/Wisdom 豁免檢定)。
+   - **檢定失敗**：扣除 SAN 值 (如 1d6)。
+   - **檢定成功**：不扣或扣除較少。
+   - 數值低時 ( <50 ) 描述需帶有恐怖幻覺。
+4. **戰力控制**：嚴格控制屬性。
 
 【當前狀態】${JSON.stringify(state.stats)}
 
 【輸出格式】
-請以小說風格描寫，結尾附帶 JSON 更新狀態：
+小說風格描寫，結尾附帶 JSON：
 \`\`\`json
 {
   "hp_change": 0,
@@ -436,9 +501,8 @@
 \`\`\`
 世界觀：「${state.worldPrompt}」。請開始。`;
                 
-                conversationHistory = [{role:"user", parts:[{text:sysPrompt}]}, {role:"model", parts:[{text:"遵命，我將嚴格執行 D&D 規則與 SAN 值系統。"}]}];
+                conversationHistory = [{role:"user", parts:[{text:sysPrompt}]}, {role:"model", parts:[{text:"遵命。"}]}];
                 await callAI(`(冒險開始)`);
-                // 創建完馬上存一次
                 saveToAccount();
             } catch(e) { alert("啟動失敗: " + e.message); }
         }
@@ -448,12 +512,11 @@
             log.innerHTML += `<div id="load-anim" class="msg gm">DM 正在思考...</div>`; log.scrollTop=log.scrollHeight;
             
             const modInfo = Object.keys(state.stats).map(k => `${k.toUpperCase()}: ${getModStr(state.stats[k])}`).join(', ');
-            // V56: 加入 SAN 狀態提示
             let sanStatus = "理智正常";
-            if (state.san < 20) sanStatus = "崩潰/瘋狂 (判定劣勢)";
-            else if (state.san < 50) sanStatus = "精神不穩/幻覺";
+            if (state.san < 20) sanStatus = "瘋狂/崩潰";
+            else if (state.san < 50) sanStatus = "精神不穩";
 
-            const context = `[隱藏資訊: HP=${state.hp}, SAN=${state.san}/${state.maxSan}(${sanStatus}), 修正值={${modInfo}}, 時間=${state.time}, 地點=${state.location}]`;
+            const context = `[隱藏資訊: HP=${state.hp}, SAN=${state.san}/100 (${sanStatus}), 修正值={${modInfo}}, 時間=${state.time}, 地點=${state.location}]`;
             
             conversationHistory.push({role:"user", parts:[{text: txt + "\n" + context}]});
 
@@ -466,15 +529,12 @@
                         generationConfig: { temperature: 0.7 }
                     })
                 });
-
                 const data = await res.json();
                 document.getElementById('load-anim').remove();
                 if (data.error) throw new Error(data.error.message);
-                
                 const aiTxt = data.candidates[0].content.parts[0].text;
                 conversationHistory.push({role:"model", parts:[{text:aiTxt}]});
                 processAIResponse(aiTxt);
-
             } catch(e) {
                 document.getElementById('load-anim')?.remove();
                 addMsg("sys", `API 錯誤: ${e.message}`);
@@ -489,8 +549,7 @@
                     const u = JSON.parse(jsonMatch[1]);
                     if(u.hp_change) state.hp = Math.max(0, Math.min(state.maxHp, state.hp + u.hp_change));
                     if(u.mp_change) state.mp = Math.max(0, Math.min(state.maxMp, state.mp + u.mp_change));
-                    // SAN 更新
-                    if(u.san_change) state.san = Math.max(0, Math.min(state.maxSan, state.san + u.san_change));
+                    if(u.san_change) state.san = Math.max(0, Math.min(100, state.san + u.san_change));
                     
                     if(u.time) state.time = u.time; 
                     if(u.location) state.location = u.location;
@@ -500,9 +559,6 @@
                         state.story_options = u.story_options;
                         renderOptions(u.story_options);
                     }
-
-                    // 每次回應後自動存檔到 localStorage 的 db 結構太慢，改由使用者手動存或重要節點存
-                    // 但為了體驗，我們還是更新一下暫存
                     displayTxt = txt.replace(jsonMatch[0], "");
                 } catch(e){}
             }
@@ -510,16 +566,28 @@
             updateUI();
         }
 
-        // --- 4. 讀檔邏輯 (V56: Stop Auto-Gen) ---
+        // --- V57 Fix: 選項點擊只填入不送出 ---
+        window.renderOptions = function(opts) {
+            const c = document.getElementById('options-area'); c.innerHTML="";
+            if(!opts) return;
+            opts.forEach(o => {
+                const b = document.createElement('button'); b.className='opt-btn'; b.innerText=o;
+                b.onclick = () => { 
+                    const i = document.getElementById('user-input'); 
+                    i.value = o; 
+                    i.focus();
+                    // Removed sendMsg() call
+                };
+                c.appendChild(b);
+            });
+        }
+
         window.loadGameData = function(d) {
             state = d.state;
             conversationHistory = d.history;
-            
-            // 介面還原
             const log = document.getElementById('chat-log');
             log.innerHTML = '';
             
-            // 重新繪製歷史
             conversationHistory.forEach(msg => {
                 if(msg.role === 'user' && msg.parts) {
                     let txt = msg.parts[0].text.split('\n[隱藏資訊')[0];
@@ -534,18 +602,9 @@
                 }
             });
 
-            // 還原選項
-            if(state.story_options && state.story_options.length > 0) {
-                renderOptions(state.story_options);
-            }
-
+            if(state.story_options && state.story_options.length > 0) renderOptions(state.story_options);
             updateUI();
-            addMsg("sys", `歡迎回來，${currentUser}。存檔已讀取，請繼續行動。(系統靜待指令中)`);
-            
-            // V56 關鍵修正：這裡 **不** 呼叫 detectModelAndStart()
-            // 讓 confirmedModel 保持空值或稍後懶加載，只更新 UI，等待玩家輸入
-            // 如果玩家輸入了，sendMsg 會觸發 callAI，那時如果沒 model 會報錯嗎？
-            // 我們需要偷偷偵測一下 Model 但不發話
+            addMsg("sys", `歡迎回來，${currentUser}。存檔已讀取。`);
             fetchModelOnly();
         };
 
@@ -558,31 +617,14 @@
             } catch(e) {}
         }
 
-        // --- UI Utils ---
-        window.renderOptions = function(opts) {
-            const c = document.getElementById('options-area'); c.innerHTML="";
-            if(!opts) return;
-            opts.forEach(o => {
-                const b = document.createElement('button'); b.className='opt-btn'; b.innerText=o;
-                b.onclick = () => { 
-                    const i = document.getElementById('user-input'); 
-                    i.value = o; 
-                    // i.focus(); // 選擇選項後通常直接送出比較好體驗，或者讓 user 修改
-                    // 為了方便，這裡點擊直接送出
-                    sendMsg();
-                };
-                c.appendChild(b);
-            });
-        }
-
         window.updateUI = function() {
             document.getElementById('hp-txt').innerText = `${state.hp}/${state.maxHp}`;
             document.getElementById('hp-bar').style.width = `${(state.hp/state.maxHp)*100}%`;
             document.getElementById('mp-txt').innerText = `${state.mp}/${state.maxMp}`;
             document.getElementById('mp-bar').style.width = `${(state.mp/state.maxMp)*100}%`;
-            // SAN UI
-            document.getElementById('san-txt').innerText = `${state.san}/${state.maxSan}`;
-            document.getElementById('san-bar').style.width = `${(state.san/state.maxSan)*100}%`;
+            // V57 SAN
+            document.getElementById('san-txt').innerText = `${state.san}/100`;
+            document.getElementById('san-bar').style.width = `${state.san}%`;
 
             document.getElementById('location-display').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${state.location}`;
             document.getElementById('time-display').innerText = state.time;
