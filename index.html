@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RPG Engine V63 (Append Option Fix)</title>
+    <title>RPG Engine V64 (UI Restored)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- V63: 樣式與 V62 保持一致 (大字體/手機優化) --- */
+        /* --- 核心樣式 (V58/V60 風格 + 大字體) --- */
         :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --success: #03dac6; --warn: #cf6679; }
         
         body { margin: 0; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; font-size: 18px; }
 
         .app-container { display: flex; height: 100%; }
         
-        /* Desktop Sidebar */
         .sidebar { width: 480px; background: #181818; border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; }
         .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
 
@@ -29,7 +28,6 @@
 
         .header-bar { padding: 15px 24px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: #aaa; }
         
-        /* Chat Log */
         .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 20px; line-height: 1.8; padding-bottom: 120px; }
         .msg { margin-bottom: 24px; max-width: 90%; padding: 20px 25px; border-radius: 12px; animation: fadeIn 0.3s; }
         .msg.gm { background: #252525; border-left: 6px solid var(--accent); color: #e5e5e5; }
@@ -44,14 +42,29 @@
         input[type="text"] { flex: 1; padding: 16px; background: #252525; border: 1px solid #444; color: white; border-radius: 30px; outline: none; padding-left: 24px; font-size: 18px; }
         .send-btn { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; font-size: 24px; }
 
-        /* Modals */
+        /* Modal Styles (Restored V58 Look) */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-box { background: #1e1e1e; width: 90%; max-width: 550px; padding: 30px; border-radius: 12px; border: 1px solid #444; box-shadow: 0 10px 40px rgba(0,0,0,0.8); max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
-        .modal-btn { width: 100%; padding: 16px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 18px; }
+        .modal-btn { width: 100%; padding: 16px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 18px; transition: 0.2s; }
+        .modal-btn:hover { filter: brightness(1.1); }
+        .modal-btn.secondary { background: #444; color: #fff; }
+
         .login-input { width: 100%; padding: 14px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-bottom: 12px; font-size: 16px; box-sizing: border-box; }
 
-        /* D100 */
-        .die-d100 { background: #607d8b; border-radius: 50%; padding-top: 0; display:flex; align-items:center; justify-content:center; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        /* --- Attribute Editor (Restored V58 Style) --- */
+        .attr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .attr-main { text-align: center; background: #2a2a2a; padding: 8px; border-radius: 6px; }
+        .attr-val { font-size: 22px; font-weight: bold; color: var(--accent); }
+        .attr-mod { font-size: 14px; color: var(--success); font-weight: bold; }
+        .attr-lbl { font-size: 14px; color: #aaa; }
+        .attr-cn { font-size: 12px; color: #777; display: block; margin-top: 2px; }
+
+        .attr-edit-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .attr-edit-box { background: #2a2a2a; padding: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
+        .attr-ctrl { display: flex; align-items: center; gap: 8px; }
+        .attr-btn { width: 28px; height: 28px; border-radius: 50%; border: none; background: #444; color: #fff; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .attr-btn:hover { background: var(--accent); color: #000; }
+        .range-input { width: 70px; background: #111; border: 1px solid #444; color: #fff; text-align: center; padding: 6px; border-radius: 4px; font-size: 16px; }
 
         /* Dice Grid */
         .dice-btn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; } 
@@ -70,6 +83,7 @@
             .dice-btn-grid { grid-template-columns: repeat(4, 1fr); }
             .msg { padding: 15px; font-size: 18px; }
             #dice-stage { min-height: 150px; }
+            .attr-edit-grid { grid-template-columns: 1fr; } /* Stack on mobile */
         }
 
         .die { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: white; cursor: pointer; user-select: none; transition: transform 0.1s; position: relative; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
@@ -79,8 +93,10 @@
         .die-d10 { background: #f43f5e; clip-path: polygon(50% 0%, 100% 38%, 50% 100%, 0% 38%); }
         .die-d12 { background: #ea4335; clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%); }
         .die-d20 { background: #fb8c00; clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%); }
+        .die-d100 { background: #607d8b; border-radius: 50%; padding-top: 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
         
         .hidden { display: none !important; }
+        .code-display { width: 100%; height: 200px; background: #111; color: #0f0; border: 1px solid #333; padding: 10px; font-family: monospace; font-size: 12px; resize: none; word-break: break-all; box-sizing: border-box; margin-bottom: 10px; }
         .roll-trigger-btn { background: var(--accent); color: #000; border: none; padding: 8px 16px; border-radius: 14px; font-size: 14px; font-weight: bold; cursor: pointer; }
         .send-result-btn { background: var(--success); color: #000; border: none; padding: 8px 16px; border-radius: 14px; font-size: 14px; font-weight: bold; cursor: pointer; margin-left: 10px; display: none; }
         
@@ -90,8 +106,8 @@
 <body>
 
     <div id="login-modal" class="modal">
-        <div class="modal-box">
-            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V63</h2>
+        <div class="modal-box" style="width: 400px;">
+            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V64</h2>
             <div class="login-tabs" style="display:flex; margin-bottom:20px; border-bottom:1px solid #444;">
                 <button id="tab-login" style="flex:1; background:none; border:none; color:#ccc; padding:10px; font-size:18px;" onclick="switchTab('login')">登入</button>
                 <button id="tab-register" style="flex:1; background:none; border:none; color:#888; padding:10px; font-size:18px;" onclick="switchTab('register')">註冊</button>
@@ -114,7 +130,15 @@
     <div id="char-modal" class="modal hidden">
         <div class="modal-box">
             <h2 style="color:var(--success); margin-top:0;">🎲 屬性分配</h2>
-            <div id="char-stats-editor" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:20px 0;"></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
+                <span style="color:#aaa; font-size:16px;">屬性總和範圍：</span>
+                <div>
+                    <input type="number" id="stat-min" class="range-input" value="72"> - 
+                    <input type="number" id="stat-max" class="range-input" value="80">
+                </div>
+            </div>
+            <div id="char-stats-editor" class="attr-edit-grid" style="margin: 20px 0;"></div>
+            
             <div style="background:#111; padding:12px; border-radius:6px; font-size:16px; color:#aaa; margin-bottom:15px; text-align:center;">
                 <div id="derived-stats">計算中...</div>
             </div>
@@ -128,7 +152,7 @@
     <div id="sync-modal" class="modal hidden">
         <div class="modal-box">
             <h2 id="sync-title" style="color:var(--accent); margin-top:0;">📤 匯出</h2>
-            <textarea id="sync-code-area" style="width:100%; height:150px; background:#111; color:#0f0; padding:10px;"></textarea>
+            <textarea id="sync-code-area" class="code-display"></textarea>
             <div style="display:flex; gap:10px;">
                 <button id="sync-action-btn" class="modal-btn" onclick="copySyncCode()">📋 複製</button>
                 <button class="modal-btn" style="background:#444;" onclick="closeSyncModal()">關閉</button>
@@ -201,7 +225,7 @@
     </div>
 
     <script>
-        // --- V63: Append Option + V62 Features ---
+        // --- V64: UI Restore (Attributes) + V63 Features ---
         let confirmedModel = ""; 
         let conversationHistory = []; 
         let diceBag = []; 
@@ -216,9 +240,8 @@
         };
         let state = JSON.parse(JSON.stringify(initialState));
         const ATTR_MAP = { str:'力量', dex:'敏捷', con:'體質', int:'智力', wis:'感知', cha:'魅力' };
-        const ACCOUNTS_KEY = 'rpg_local_accounts_v63'; 
+        const ACCOUNTS_KEY = 'rpg_local_accounts_v64'; 
 
-        // Encoding
         function safeEncode(str) { return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1))); }
         function safeDecode(str) { return decodeURIComponent(Array.prototype.map.call(window.atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')); }
 
@@ -228,7 +251,7 @@
             if (cachedKey) window.USER_API_KEY = cachedKey;
         };
 
-        // --- Account ---
+        // --- Account Logic ---
         let currentTab = 'login';
         window.switchTab = function(tab) {
             currentTab = tab;
@@ -273,7 +296,7 @@
             alert(`已儲存！(${currentUser})`);
         };
 
-        // --- Sync ---
+        // --- Sync Logic ---
         window.openSyncModal = function(mode) {
             if(mode === 'export') {
                 if(!currentUser) return alert("請先登入");
@@ -321,7 +344,7 @@
         };
         window.logout = function() { if(confirm("登出?")) location.reload(); };
 
-        // --- Char Setup ---
+        // --- V64: Attribute Setup RESTORED ---
         window.startCharacterCreation = function() {
             state.worldPrompt = document.getElementById('world-prompt').value.trim() || "D&D 5e";
             if(!window.USER_API_KEY) {
@@ -333,26 +356,49 @@
             document.getElementById('setup-modal').classList.add('hidden');
             document.getElementById('char-modal').classList.remove('hidden');
         }
+
         window.randomizeStats = function() {
-            const target = 75; 
+            // V64: Re-enabled range inputs
+            let min = parseInt(document.getElementById('stat-min').value)||72;
+            let max = parseInt(document.getElementById('stat-max').value)||80;
+            if (min>max) [min,max]=[max,min];
+            
+            const target = Math.floor(Math.random()*(max-min+1))+min;
             const keys=['str','dex','con','int','wis','cha'];
-            let base = 8;
+            let base = target < 48 ? 1 : 8;
             keys.forEach(k => state.stats[k] = base);
             let pts = target - (base * 6);
             let safe = 0;
-            while(pts > 0 && safe < 2000){ const k = keys[Math.floor(Math.random()*6)]; if(state.stats[k]<18){ state.stats[k]++; pts--; } safe++; }
+            while(pts > 0 && safe < 2000){ 
+                const k = keys[Math.floor(Math.random()*6)]; 
+                if(state.stats[k] < 18){ state.stats[k]++; pts--; } 
+                safe++;
+            }
             renderStatEditor();
         }
-        window.adjustStat = function(k, d) { state.stats[k] += d; if(state.stats[k]<1) state.stats[k]=1; renderStatEditor(); }
+
+        window.adjustStat = function(k, d) { 
+            state.stats[k] += d; 
+            if(state.stats[k] < 1) state.stats[k] = 1; 
+            renderStatEditor(); 
+        }
+        
         function getMod(v) { return Math.floor((v-10)/2); }
         function getModStr(v) { const m=getMod(v); return m>=0?`+${m}`:`${m}`; }
+
+        // V64: Re-implemented interactive editor (buttons are back)
         function renderStatEditor() {
             const currentSum = Object.values(state.stats).reduce((a,b)=>a+b, 0);
-            let h=''; for(let k in state.stats){
-                h += `<div style="background:#2a2a2a; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-                        <div style="font-size:14px; color:#aaa; width:50px;">${k.toUpperCase()}</div>
-                        <div style="font-size:18px; color:var(--accent); font-weight:bold;">${state.stats[k]}</div>
-                        <div style="font-size:14px; color:var(--success);">${getModStr(state.stats[k])}</div>
+            let h=''; 
+            for(let k in state.stats){
+                h += `<div class="attr-edit-box">
+                        <div class="attr-lbl" style="width:50px;">${k.toUpperCase()}<br><span style="font-size:12px;color:#888;">${ATTR_MAP[k]}</span></div>
+                        <div class="attr-ctrl">
+                            <button class="attr-btn" onclick="adjustStat('${k}',-1)">-</button>
+                            <div class="attr-val">${state.stats[k]}</div>
+                            <button class="attr-btn" onclick="adjustStat('${k}',1)">+</button>
+                        </div>
+                        <div style="font-size:16px;color:var(--success);width:35px;text-align:right;">${getModStr(state.stats[k])}</div>
                       </div>`;
             }
             document.getElementById('char-stats-editor').innerHTML=h;
@@ -360,14 +406,15 @@
             state.maxSan = 100; state.san = 90;
             document.getElementById('derived-stats').innerHTML=`總和: ${currentSum} | HP: ${state.maxHp}`;
         }
+
         window.confirmStart = async function() {
             document.getElementById('char-modal').classList.add('hidden');
             updateUI();
-            addMsg("sys","正在初始化世界 (V63)...");
+            addMsg("sys","正在初始化世界 (V64)...");
             await detectModelAndStart();
         }
 
-        // --- Core API (V62 STRICT PROMPT) ---
+        // --- Core API (V62 Strict Mode) ---
         async function detectModelAndStart() {
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
@@ -477,7 +524,7 @@ JSON在結尾：
             updateUI();
         }
 
-        // --- V63: Fixed Render Options (Append Mode) ---
+        // --- V63: Append Mode for Options ---
         window.renderOptions = function(opts) {
             const c = document.getElementById('options-area'); c.innerHTML="";
             if(!opts) return;
@@ -485,7 +532,6 @@ JSON在結尾：
                 const b = document.createElement('button'); b.className='opt-btn'; b.innerText=o;
                 b.onclick = () => { 
                     const i = document.getElementById('user-input'); 
-                    // Append check
                     if (i.value.trim().length > 0) {
                         i.value = i.value + " " + o;
                     } else {
@@ -539,7 +585,7 @@ JSON在結尾：
         window.addMsg = function(r, h) { const l=document.getElementById('chat-log'); l.innerHTML+=`<div class="msg ${r}">${h}</div>`; l.scrollTop=l.scrollHeight; }
         window.sendMsg = function() { const i=document.getElementById('user-input'); if(!i.value.trim()) return; addMsg("user",i.value); callAI(i.value); i.value=""; document.getElementById('options-area').innerHTML=""; };
 
-        // Dice (Randomness Assured by Math.random)
+        // Dice
         window.add2DDie = function(sides) { diceBag.push({ sides: sides, val: sides }); renderDice(); document.getElementById('btn-send-dice').style.display = 'none'; }
         window.removeDie = function(index) { diceBag.splice(index, 1); renderDice(); document.getElementById('btn-send-dice').style.display = 'none'; }
         window.renderDice = function() {
