@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RPG Engine V68 (AI Features)</title>
+    <title>RPG Engine V70 (AI Analysis Features)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- V68: UI Styles (Based on V67 + AI Features) --- */
+        /* --- V70: Styles based on V66/V68 --- */
         :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --success: #03dac6; --warn: #cf6679; }
         
         body { margin: 0; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; font-size: 18px; }
@@ -40,11 +40,9 @@
         .input-area { padding: 20px; background: #181818; display: flex; gap: 12px; }
         input[type="text"] { flex: 1; padding: 16px; background: #252525; border: 1px solid #444; color: white; border-radius: 30px; outline: none; padding-left: 24px; font-size: 18px; }
         .send-btn { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        /* V68: Suggestion Button */
         .ai-btn { width: 56px; height: 56px; border-radius: 50%; background: #333; border: 1px solid #555; cursor: pointer; color: #ffe082; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: 0.2s; }
         .ai-btn:hover { background: #444; border-color: #ffe082; transform: scale(1.05); }
 
-        /* Modals */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-box { background: #1e1e1e; width: 90%; max-width: 550px; padding: 30px; border-radius: 12px; border: 1px solid #444; box-shadow: 0 10px 40px rgba(0,0,0,0.8); max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
         .modal-btn { width: 100%; padding: 16px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 18px; transition: 0.2s; }
@@ -53,7 +51,6 @@
 
         .login-input { width: 100%; padding: 14px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-bottom: 12px; font-size: 16px; box-sizing: border-box; }
 
-        /* Attribute Editor */
         .attr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .attr-main { text-align: center; background: #2a2a2a; padding: 8px; border-radius: 6px; }
         .attr-val { font-size: 24px; font-weight: bold; color: var(--accent); }
@@ -70,10 +67,8 @@
 
         .hidden { display: none !important; }
         .code-display { width: 100%; height: 200px; background: #111; color: #0f0; border: 1px solid #333; padding: 10px; font-family: monospace; font-size: 14px; resize: none; word-break: break-all; box-sizing: border-box; margin-bottom: 10px; }
-        /* V68: Markdown content in modal */
         #log-content { background: #111; padding: 15px; border-radius: 8px; border: 1px solid #333; color: #ccc; line-height: 1.6; font-size: 16px; min-height: 200px; max-height: 400px; overflow-y: auto; }
 
-        /* Dice Canvas */
         #dice-stage { width: 100%; min-height: 240px; background: #e8eaed; border-bottom: 1px solid #333; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         #active-dice-area { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; padding: 15px; }
         .die { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white; cursor: pointer; user-select: none; transition: transform 0.1s; position: relative; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
@@ -99,6 +94,11 @@
         .roll-trigger-btn { background: var(--accent); color: #000; border: none; padding: 8px 20px; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer; }
         .send-result-btn { background: var(--success); color: #000; border: none; padding: 8px 20px; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer; margin-left: 10px; display: none; }
 
+        /* V70: List Item Action Buttons */
+        .list-item-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 8px 4px; }
+        .list-btn { background: none; border: 1px solid #444; color: #aaa; border-radius: 4px; padding: 2px 8px; font-size: 14px; cursor: pointer; margin-left: 8px; transition: 0.2s; }
+        .list-btn:hover { border-color: var(--accent); color: var(--accent); }
+
         @media (max-width: 768px) {
             .app-container { flex-direction: column; }
             .sidebar { width: 100%; height: 35%; display: flex; border-bottom: 1px solid #555; }
@@ -115,7 +115,7 @@
             .opt-btn { font-size: 18px; padding: 14px 24px; }
             input[type="text"] { font-size: 22px; padding: 20px; }
             .send-btn { width: 60px; height: 60px; font-size: 28px; }
-            .ai-btn { width: 60px; height: 60px; font-size: 28px; } /* Mobile AI button */
+            .ai-btn { width: 60px; height: 60px; font-size: 28px; }
         }
         
         @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(10deg); } 50% { transform: rotate(-10deg); } 75% { transform: rotate(5deg); } 100% { transform: rotate(0deg); } }
@@ -123,10 +123,9 @@
 </head>
 <body>
 
-    <!-- 1. Login -->
     <div id="login-modal" class="modal">
         <div class="modal-box" style="width: 400px;">
-            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V68</h2>
+            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V70</h2>
             <div class="login-tabs" style="display:flex; margin-bottom:20px; border-bottom:1px solid #444;">
                 <button id="tab-login" style="flex:1; background:none; border:none; color:#ccc; padding:10px; font-size:18px;" onclick="switchTab('login')">登入</button>
                 <button id="tab-register" style="flex:1; background:none; border:none; color:#888; padding:10px; font-size:18px;" onclick="switchTab('register')">註冊</button>
@@ -138,7 +137,6 @@
         </div>
     </div>
 
-    <!-- 2. Setup -->
     <div id="setup-modal" class="modal hidden">
         <div class="modal-box">
             <h2 style="color:var(--accent); margin-top:0;">📖 建立新冒險</h2>
@@ -147,7 +145,6 @@
         </div>
     </div>
 
-    <!-- 3. Stats (V64 Style) -->
     <div id="char-modal" class="modal hidden">
         <div class="modal-box">
             <h2 style="color:var(--success); margin-top:0;">🎲 屬性分配</h2>
@@ -166,7 +163,6 @@
         </div>
     </div>
 
-    <!-- 4. Export Modal -->
     <div id="sync-modal" class="modal hidden">
         <div class="modal-box">
             <h2 id="sync-title" style="color:var(--accent); margin-top:0;">📤 匯出</h2>
@@ -178,16 +174,15 @@
         </div>
     </div>
 
-    <!-- V68: 5. Adventure Log Modal (New) -->
+    <!-- Info Modal (Log / Inspection) -->
     <div id="log-modal" class="modal hidden">
         <div class="modal-box">
-            <h2 style="color:var(--accent); margin-top:0;">✨ 冒險日誌摘要</h2>
-            <div id="log-content">正在生成摘要...</div>
+            <h2 id="log-title" style="color:var(--accent); margin-top:0;">✨ 資訊</h2>
+            <div id="log-content">讀取中...</div>
             <button class="modal-btn" style="background:#444;" onclick="document.getElementById('log-modal').classList.add('hidden')">關閉</button>
         </div>
     </div>
 
-    <!-- Main UI -->
     <div class="app-container">
         <aside class="sidebar">
             <div id="dice-stage">
@@ -217,6 +212,8 @@
                     <div class="card-header">狀態</div>
                     <div class="stat-row"><span>HP</span> <span id="hp-txt">--/--</span></div>
                     <div class="bar-wrap"><div id="hp-bar" class="bar-fill" style="width:100%; background:#cf6679;"></div></div>
+                    <div class="stat-row"><span id="mp-label">MP</span> <span id="mp-txt">--/--</span></div>
+                    <div class="bar-wrap"><div id="mp-bar" class="bar-fill" style="width:100%; background:#03dac6;"></div></div>
                     <div class="stat-row"><span style="color:#bb86fc;">SAN (%)</span> <span id="san-txt">--/--</span></div>
                     <div class="bar-wrap"><div id="san-bar" class="bar-fill" style="width:100%; background:#bb86fc;"></div></div>
                 </div>
@@ -242,9 +239,7 @@
                     <span id="time-display" style="color:#aaa;">初始</span>
                 </div>
                 <div>
-                    <!-- V68: New Log Button -->
-                    <button class="menu-btn" onclick="generateLog()" style="background:none;border:none;color:#ffe082;font-size:20px;margin-right:10px;" title="生成冒險日誌">✨ 日誌</button>
-                    
+                    <button class="menu-btn" onclick="generateLog()" style="background:none;border:none;color:#ffe082;font-size:20px;margin-right:10px;" title="冒險日誌">✨ 日誌</button>
                     <button class="menu-btn" onclick="openSyncModal('export')" style="background:none;border:none;color:#ccc;font-size:20px;margin-right:10px;">📤</button>
                     <button class="menu-btn" onclick="openSyncModal('import')" style="background:none;border:none;color:#ccc;font-size:20px;margin-right:10px;">📥</button>
                     <button class="menu-btn" onclick="saveToAccount()" style="background:none;border:none;color:#aaa;font-size:20px;margin-right:10px;">☁️</button>
@@ -256,7 +251,6 @@
             <div id="options-area" class="options-container"></div>
             
             <div class="input-area">
-                <!-- V68: Suggestion Button -->
                 <button class="ai-btn" onclick="generateSuggestions()" title="AI 行動建議">✨</button>
                 <input type="text" id="user-input" placeholder="輸入行動..." autocomplete="off">
                 <button class="send-btn" onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
@@ -265,7 +259,7 @@
     </div>
 
     <script>
-        // --- V68: AI Features (Log & Suggestions) + V67 Core ---
+        // --- V70: AI Inspection Features ---
         let confirmedModel = ""; 
         let conversationHistory = []; 
         let diceBag = []; 
@@ -273,14 +267,15 @@
         let currentUser = null; 
 
         const initialState = { 
-            hp: 10, maxHp: 10, san: 90, maxSan: 100, 
+            hp: 10, maxHp: 10, mp: 10, maxMp: 10, mpLabel: "MP", 
+            san: 90, maxSan: 100, 
             stats: { str:10, dex:10, con:10, int:10, wis:10, cha:10 }, 
             inventory: [], npcs: [], story_options: [], 
             time: "起始", location: "未知", worldPrompt: "" 
         };
         let state = JSON.parse(JSON.stringify(initialState));
         const ATTR_MAP = { str:'力量', dex:'敏捷', con:'體質', int:'智力', wis:'感知', cha:'魅力' };
-        const ACCOUNTS_KEY = 'rpg_local_accounts_v68'; 
+        const ACCOUNTS_KEY = 'rpg_local_accounts_v70'; 
 
         function safeEncode(str) { return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1))); }
         function safeDecode(str) { return decodeURIComponent(Array.prototype.map.call(window.atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')); }
@@ -401,36 +396,61 @@
             let min = parseInt(document.getElementById('stat-min').value)||72;
             let max = parseInt(document.getElementById('stat-max').value)||80;
             if (min>max) [min,max]=[max,min];
+            
             const target = Math.floor(Math.random()*(max-min+1))+min;
             const keys=['str','dex','con','int','wis','cha'];
             let base = target < 48 ? 1 : 8;
             keys.forEach(k => state.stats[k] = base);
             let pts = target - (base * 6);
             let safe = 0;
-            while(pts > 0 && safe < 2000){ const k = keys[Math.floor(Math.random()*6)]; if(state.stats[k]<18){ state.stats[k]++; pts--; } safe++; }
+            while(pts > 0 && safe < 2000){ 
+                const k = keys[Math.floor(Math.random()*6)]; 
+                if(state.stats[k] < 18){ state.stats[k]++; pts--; } 
+                safe++;
+            }
             renderStatEditor();
         }
-        window.adjustStat = function(k, d) { state.stats[k] += d; if(state.stats[k]<1) state.stats[k]=1; renderStatEditor(); }
+
+        window.adjustStat = function(k, d) { 
+            state.stats[k] += d; 
+            if(state.stats[k] < 1) state.stats[k] = 1; 
+            renderStatEditor(); 
+        }
+        
         function getMod(v) { return Math.floor((v-10)/2); }
         function getModStr(v) { const m=getMod(v); return m>=0?`+${m}`:`${m}`; }
+
         function renderStatEditor() {
             const currentSum = Object.values(state.stats).reduce((a,b)=>a+b, 0);
-            let h=''; for(let k in state.stats){
-                h += `<div class="attr-edit-box"><div class="attr-lbl" style="width:50px;">${k.toUpperCase()}<br><span style="font-size:12px;color:#888;">${ATTR_MAP[k]}</span></div><div class="attr-ctrl"><button class="attr-btn" onclick="adjustStat('${k}',-1)">-</button><div class="attr-val">${state.stats[k]}</div><button class="attr-btn" onclick="adjustStat('${k}',1)">+</button></div><div style="font-size:16px;color:var(--success);width:35px;text-align:right;">${getModStr(state.stats[k])}</div></div>`;
+            let h=''; 
+            for(let k in state.stats){
+                h += `<div class="attr-edit-box">
+                        <div class="attr-lbl" style="width:50px;">${k.toUpperCase()}<br><span style="font-size:12px;color:#888;">${ATTR_MAP[k]}</span></div>
+                        <div class="attr-ctrl">
+                            <button class="attr-btn" onclick="adjustStat('${k}',-1)">-</button>
+                            <div class="attr-val">${state.stats[k]}</div>
+                            <button class="attr-btn" onclick="adjustStat('${k}',1)">+</button>
+                        </div>
+                        <div style="font-size:16px;color:var(--success);width:35px;text-align:right;">${getModStr(state.stats[k])}</div>
+                      </div>`;
             }
             document.getElementById('char-stats-editor').innerHTML=h;
             state.maxHp = 10 + getMod(state.stats.con); state.hp = state.maxHp;
+            
+            state.maxMp = Math.max(1, getMod(state.stats.int) + getMod(state.stats.wis));
+            state.mp = state.maxMp;
             state.maxSan = 100; state.san = 90;
             document.getElementById('derived-stats').innerHTML=`總和: ${currentSum} | HP: ${state.maxHp}`;
         }
+
         window.confirmStart = async function() {
             document.getElementById('char-modal').classList.add('hidden');
             updateUI();
-            addMsg("sys","正在初始化世界 (V68)...");
+            addMsg("sys","正在初始化世界 (V70)...");
             await detectModelAndStart();
         }
 
-        // --- Core API (V67 Base) ---
+        // --- Core API ---
         async function detectModelAndStart() {
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
@@ -468,6 +488,7 @@ JSON在結尾：
 {
   "hp_change": 0,
   "mp_change": 0,
+  "mp_label": "MP",
   "san_change": 0,
   "add_item": "",
   "remove_item": "",
@@ -494,7 +515,7 @@ JSON在結尾：
             if (state.san < 20) sanStatus = "瘋狂"; else if (state.san < 50) sanStatus = "不穩";
             const items = state.inventory.length > 0 ? state.inventory.join(', ') : "無";
 
-            const context = `[隱藏資訊: HP=${state.hp}, SAN=${state.san}/100, 物品=[${items}], 修正值={${modInfo}}, 時間=${state.time}, 地點=${state.location}]`;
+            const context = `[隱藏資訊: HP=${state.hp}, MP=${state.mp}, SAN=${state.san}/100, 物品=[${items}], 修正值={${modInfo}}, 時間=${state.time}, 地點=${state.location}]`;
             
             conversationHistory.push({role:"user", parts:[{text: txt + "\n" + context}]});
 
@@ -522,6 +543,8 @@ JSON在結尾：
                 try {
                     const u = JSON.parse(jsonMatch[1]);
                     if(u.hp_change) state.hp = Math.max(0, Math.min(state.maxHp, state.hp + u.hp_change));
+                    if(u.mp_change) state.mp = Math.max(0, Math.min(state.maxMp, state.mp + u.mp_change));
+                    if(u.mp_label) state.mpLabel = u.mp_label;
                     if(u.san_change) state.san = Math.max(0, Math.min(100, state.san + u.san_change));
                     
                     if(u.add_item && u.add_item.trim() !== "") state.inventory.push(u.add_item);
@@ -594,19 +617,37 @@ JSON在結尾：
         window.updateUI = function() {
             document.getElementById('hp-txt').innerText = `${state.hp}/${state.maxHp}`;
             document.getElementById('hp-bar').style.width = `${(state.hp/state.maxHp)*100}%`;
+            document.getElementById('mp-label').innerText = state.mpLabel || "MP";
+            document.getElementById('mp-txt').innerText = `${state.mp}/${state.maxMp}`;
+            document.getElementById('mp-bar').style.width = `${(state.mp/state.maxMp)*100}%`;
+            
             document.getElementById('san-txt').innerText = `${state.san}/100`;
             document.getElementById('san-bar').style.width = `${state.san}%`;
             
             const invDiv = document.getElementById('inv-list');
-            if(state.inventory && state.inventory.length > 0) invDiv.innerHTML = state.inventory.map(i => `<div style="border-bottom:1px solid #333;padding:8px;color:#eee;">${i}</div>`).join('');
-            else invDiv.innerHTML = "背包空空如也";
+            // V70: Inventory with Inspect button
+            if(state.inventory && state.inventory.length > 0) {
+                invDiv.innerHTML = state.inventory.map(i => `
+                    <div class="list-item-row">
+                        <span>${i}</span>
+                        <button class="list-btn" onclick="inspectItem('${i}')">✨</button>
+                    </div>`).join('');
+            } else invDiv.innerHTML = "背包空空如也";
 
             const npcDiv = document.getElementById('npc-list');
+            // V70: NPC with Inspect button
             if(state.npcs && state.npcs.length > 0) {
                 npcDiv.innerHTML = state.npcs.map(n => {
                     const name = typeof n === 'string' ? n : (n.name || '未知');
                     const rel = typeof n === 'string' ? '' : (n.rel || '');
-                    return `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #333;padding:8px;"><span style="color:#bb86fc">${name}</span><span style="color:#888;font-size:14px;">${rel}</span></div>`;
+                    return `
+                    <div class="list-item-row">
+                        <div>
+                            <span style="color:#bb86fc">${name}</span>
+                            <span style="color:#888;font-size:14px;margin-left:5px;">${rel}</span>
+                        </div>
+                        <button class="list-btn" onclick="inspectNPC('${name}')">🔍</button>
+                    </div>`;
                 }).join('');
             } else { npcDiv.innerHTML = "無重要 NPC"; }
 
@@ -641,17 +682,15 @@ JSON在結尾：
             document.getElementById('btn-send-dice').style.display = 'none'; diceBag = []; renderDice();
         }
 
-        // --- V68 AI Feature Functions ---
-        window.generateLog = async function() {
+        // --- V68/V70 AI Feature Functions ---
+        async function callGeminiAux(prompt, title) {
             if(!confirmedModel) return alert("尚未開始遊戲");
             document.getElementById('log-modal').classList.remove('hidden');
-            document.getElementById('log-content').innerText = "Gemini 正在為您撰寫冒險日誌...";
+            document.getElementById('log-title').innerText = title;
+            document.getElementById('log-content').innerText = "Gemini 正在分析中...";
             
             try {
-                // Separate history for summary to not pollute context significantly, or just use current
-                const prompt = "請根據上述對話紀錄，為玩家撰寫一份「冒險日誌摘要」。請用繁體中文，以條列式重點回顧目前的關鍵劇情、遇到的 NPC 與待辦事項。";
                 const tempHistory = [...conversationHistory, {role:"user", parts:[{text: prompt}]}];
-                
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${confirmedModel}:generateContent?key=${window.USER_API_KEY}`, {
                     method:'POST', headers:{'Content-Type':'application/json'}, 
                     body:JSON.stringify({ contents: tempHistory })
@@ -660,8 +699,23 @@ JSON在結尾：
                 const text = data.candidates[0].content.parts[0].text;
                 document.getElementById('log-content').innerHTML = marked.parse(text);
             } catch(e) {
-                document.getElementById('log-content').innerText = "生成失敗: " + e.message;
+                document.getElementById('log-content').innerText = "分析失敗: " + e.message;
             }
+        }
+
+        window.generateLog = function() {
+            const prompt = "請根據上述對話紀錄，為玩家撰寫一份「冒險日誌摘要」。請用繁體中文，以條列式重點回顧目前的關鍵劇情、遇到的 NPC 與待辦事項。";
+            callGeminiAux(prompt, "✨ 冒險日誌摘要");
+        };
+
+        window.inspectItem = function(name) {
+            const prompt = `請詳細鑑定物品「${name}」。描述它的外觀細節、材質、歷史淵源以及可能隱藏的魔法微光或詛咒。請用繁體中文，帶有神祕感。`;
+            callGeminiAux(prompt, `✨ 物品鑑定: ${name}`);
+        };
+
+        window.inspectNPC = function(name) {
+            const prompt = `請根據劇情深度側寫 NPC「${name}」。描述其外貌特徵、性格關鍵字、說話方式的特點，並推測一個不為人知的秘密或動機。請用繁體中文。`;
+            callGeminiAux(prompt, `🔍 人物側寫: ${name}`);
         };
 
         window.generateSuggestions = async function() {
@@ -672,22 +726,15 @@ JSON在結尾：
             
             try {
                 const prompt = "請根據目前劇情，提供 3 個簡短、有創意的行動建議給玩家。格式：僅列出 3 個選項，每個選項一行，不要有編號或額外文字。";
-                // We use a separate context call to not mess up main flow, but we need context.
-                // We will send the whole history but with a different system instruction if possible, 
-                // or just append this prompt to a copy of history.
                 const tempHistory = [...conversationHistory, {role:"user", parts:[{text: prompt}]}];
-                
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${confirmedModel}:generateContent?key=${window.USER_API_KEY}`, {
                     method:'POST', headers:{'Content-Type':'application/json'}, 
                     body:JSON.stringify({ contents: tempHistory })
                 });
                 const data = await res.json();
                 const text = data.candidates[0].content.parts[0].text;
-                
-                // Parse suggestions
                 const suggestions = text.split('\n').filter(l => l.trim() !== '').slice(0, 3);
                 renderOptions(suggestions);
-                
             } catch(e) {
                 alert("生成建議失敗");
             } finally {
