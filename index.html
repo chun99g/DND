@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RPG Engine V71 (Mobile Optimized)</title>
+    <title>RPG Engine V72 (Mobile Optimized)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- V71: Mobile Drawer Design --- */
+        /* --- V72: UI Styles --- */
         :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --success: #03dac6; --warn: #cf6679; --drawer-bg: #1a1a1a; }
         
         body { margin: 0; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; font-size: 18px; }
@@ -21,13 +21,6 @@
         /* Main Content */
         .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; z-index: 10; }
 
-        /* Mobile Header (New) */
-        .mobile-header { display: none; padding: 10px 15px; background: #1e1e1e; border-bottom: 1px solid #333; align-items: center; justify-content: space-between; }
-        .hamburger-btn { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 5px; }
-
-        /* Overlay for Mobile Sidebar */
-        .sidebar-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 15; }
-
         .panel-content { padding: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 15px; }
         .card { background: var(--panel); padding: 16px; border-radius: 10px; border: 1px solid #333; }
         .card-header { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; color: #aaa; margin-bottom: 12px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 8px; }
@@ -36,8 +29,10 @@
         .bar-fill { height: 100%; transition: width 0.5s ease; }
         .stat-row { display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 5px; }
 
+        /* Desktop Header */
         .header-bar { padding: 15px 24px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: #aaa; }
         
+        /* Chat Log */
         .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 20px; line-height: 1.8; padding-bottom: 120px; }
         .msg { margin-bottom: 24px; max-width: 90%; padding: 20px 25px; border-radius: 12px; animation: fadeIn 0.3s; }
         .msg.gm { background: #252525; border-left: 6px solid var(--accent); color: #e5e5e5; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
@@ -48,13 +43,15 @@
         .opt-btn { background: #2a2a2a; color: #ccc; border: 1px solid #444; padding: 12px 20px; border-radius: 25px; cursor: pointer; font-size: 16px; transition: 0.2s; text-align: left; }
         .opt-btn:hover { background: #333; color: var(--accent); border-color: var(--accent); transform: translateY(-2px); }
 
-        .input-area { padding: 20px; background: #181818; display: flex; gap: 12px; }
+        /* Input Area (Shared) */
+        .input-area { padding: 20px; background: #181818; display: flex; gap: 15px; align-items: center; } /* Gap increased */
         input[type="text"] { flex: 1; padding: 16px; background: #252525; border: 1px solid #444; color: white; border-radius: 30px; outline: none; padding-left: 24px; font-size: 18px; }
-        .send-btn { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        .ai-btn { width: 56px; height: 56px; border-radius: 50%; background: #333; border: 1px solid #555; cursor: pointer; color: #ffe082; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: 0.2s; }
+        .send-btn { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; font-size: 24px; min-width: 56px; } /* min-width added */
+        .ai-btn { width: 56px; height: 56px; border-radius: 50%; background: #333; border: 1px solid #555; cursor: pointer; color: #ffe082; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: 0.2s; min-width: 56px; } /* min-width added */
+        .ai-btn:hover { background: #444; border-color: #ffe082; transform: scale(1.05); }
 
         /* Modals */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-box { background: #1e1e1e; width: 90%; max-width: 550px; padding: 30px; border-radius: 12px; border: 1px solid #444; box-shadow: 0 10px 40px rgba(0,0,0,0.8); max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
         .modal-btn { width: 100%; padding: 16px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 18px; transition: 0.2s; }
         .modal-btn.secondary { background: #444; color: #fff; }
@@ -108,45 +105,53 @@
         .list-item-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 12px 4px; }
         .list-btn { background: none; border: 1px solid #444; color: #aaa; border-radius: 4px; padding: 4px 10px; font-size: 16px; cursor: pointer; margin-left: 8px; }
 
-        /* --- V71: Mobile Drawer & Fullscreen Chat --- */
+        /* --- V72: Mobile Header & Layout Fixes --- */
+        .mobile-header { display: none; padding: 12px 16px; background: #1e1e1e; border-bottom: 1px solid #333; align-items: center; justify-content: space-between; gap: 10px; }
+        .hamburger-btn { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 5px; }
+        
+        /* Mobile Status Mini Bar */
+        .mobile-status-mini { display: none; gap: 8px; align-items: center; width: 100px; }
+        .mini-bar { width: 100%; height: 4px; background: #333; border-radius: 2px; overflow: hidden; margin-top: 2px; }
+        .mini-fill { height: 100%; }
+
+        /* Mobile Responsive */
         @media (max-width: 768px) {
-            /* 側邊欄改為抽屜 */
+            .app-container { flex-direction: column; }
             .sidebar { 
-                position: fixed; 
-                top: 0; 
-                left: -100%; /* 預設隱藏在左側 */
-                width: 85%; 
-                height: 100%; 
-                background: var(--drawer-bg); 
-                border-right: 1px solid #333; 
-                z-index: 100; /* 高於內容 */
-                transition: left 0.3s ease;
-                box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+                position: fixed; top: 0; left: -100%; 
+                width: 85%; height: 100%; background: var(--drawer-bg); 
+                border-right: 1px solid #333; z-index: 100; 
+                transition: left 0.3s ease; box-shadow: 5px 0 15px rgba(0,0,0,0.5);
             }
             .sidebar.active { left: 0; }
-
-            /* 遮罩 */
             .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 90; }
             .sidebar-overlay.active { display: block; }
 
-            /* 手機版頂部 Header */
-            .mobile-header { display: flex; background: #181818; padding: 15px; border-bottom: 1px solid #333; align-items: center; justify-content: space-between; position: relative; z-index: 10; }
+            /* V72: Mobile Header Layout - [Status] [Loc/Time] [Actions] */
+            .mobile-header { display: flex; }
+            .header-bar { display: none; } /* Hide Desktop Header */
             
-            /* Main Content: 全螢幕 */
+            .mobile-status-mini { display: flex; flex-direction: column; width: 60px; margin-right: 10px; }
+            
+            /* Center Info */
+            .mobile-info { flex: 1; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+            .mobile-loc { font-size: 16px; font-weight: bold; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .mobile-time { font-size: 12px; color: #aaa; }
+
+            /* Right Actions */
+            .mobile-actions { display: flex; gap: 15px; }
+
             .main-content { width: 100%; height: 100%; flex: 1; }
-            .header-bar { display: none; } /* 隱藏原本的 Header */
+            .chat-log { padding-bottom: 140px; font-size: 22px; }
             
-            /* Chat Area */
-            .chat-log { padding-bottom: 140px; font-size: 22px; } /* 底部留白給大輸入框 */
-            
-            /* Input Area */
+            /* Input Area Fixes */
             .input-area { padding: 15px; background: #111; border-top: 1px solid #333; }
             input[type="text"] { font-size: 20px; padding: 18px; }
-            .send-btn, .ai-btn { width: 55px; height: 55px; font-size: 24px; }
+            /* Force min-width to prevent squeezing */
+            .send-btn, .ai-btn { min-width: 60px; width: 60px; height: 60px; font-size: 28px; } 
 
-            /* Dice Grid in Drawer */
             .dice-btn-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
-            .attr-edit-grid { grid-template-columns: 1fr; } /* 單欄屬性 */
+            .attr-edit-grid { grid-template-columns: 1fr; }
         }
         
         @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(10deg); } 50% { transform: rotate(-10deg); } 75% { transform: rotate(5deg); } 100% { transform: rotate(0deg); } }
@@ -156,7 +161,7 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-box" style="width: 400px;">
-            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V71</h2>
+            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V72</h2>
             <div class="login-tabs" style="display:flex; margin-bottom:20px; border-bottom:1px solid #444;">
                 <button id="tab-login" style="flex:1; background:none; border:none; color:#ccc; padding:10px; font-size:18px;" onclick="switchTab('login')">登入</button>
                 <button id="tab-register" style="flex:1; background:none; border:none; color:#888; padding:10px; font-size:18px;" onclick="switchTab('register')">註冊</button>
@@ -213,26 +218,35 @@
         </div>
     </div>
 
-    <!-- Main UI Container -->
     <div class="app-container">
         
-        <!-- V71: Mobile Header -->
+        <!-- V72: Improved Mobile Header -->
         <div class="mobile-header">
-            <button class="hamburger-btn" onclick="toggleSidebar()">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div style="font-size:18px; color:#ddd; font-weight:bold;">RPG Engine</div>
-            <button class="hamburger-btn" onclick="generateLog()">
-                <i class="fas fa-book"></i> <!-- Shortcut for Log -->
-            </button>
+            <!-- Left: Mini Status -->
+            <div class="mobile-status-mini">
+                <div class="mini-bar" style="background:#333;"><div id="mini-hp-bar" class="mini-fill" style="width:100%; background:#cf6679;"></div></div>
+                <div class="mini-bar" style="background:#333;"><div id="mini-san-bar" class="mini-fill" style="width:100%; background:#bb86fc;"></div></div>
+            </div>
+
+            <!-- Center: Location/Time -->
+            <div class="mobile-info">
+                <div id="mobile-loc-display" class="mobile-loc">初始地點</div>
+                <div id="mobile-time-display" class="mobile-time">時間未知</div>
+            </div>
+
+            <!-- Right: Actions -->
+            <div class="mobile-actions">
+                <button class="hamburger-btn" onclick="generateLog()" title="日誌"><i class="fas fa-book"></i></button>
+                <button class="hamburger-btn" onclick="toggleSidebar()" title="選單"><i class="fas fa-bars"></i></button>
+            </div>
         </div>
 
-        <!-- Sidebar (Drawer on Mobile) -->
         <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+        
+        <!-- Sidebar -->
         <aside id="sidebar" class="sidebar">
-            <!-- Mobile Sidebar Header -->
             <div class="mobile-header" style="display: flex; border-bottom: 1px solid #333; background: #222;">
-                <span style="color:#aaa;">角色面板</span>
+                <span style="color:#aaa; font-weight:bold;">角色面板</span>
                 <button class="hamburger-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
             </div>
 
@@ -242,7 +256,6 @@
             </div>
             
             <div class="panel-content">
-                <!-- Menu Actions (Moved here for mobile access) -->
                 <div class="card" style="padding:10px; display:flex; gap:10px; overflow-x:auto;">
                     <button class="menu-btn" onclick="openSyncModal('export')" style="background:none;border:none;color:#ccc;font-size:24px;">📤</button>
                     <button class="menu-btn" onclick="openSyncModal('import')" style="background:none;border:none;color:#ccc;font-size:24px;">📥</button>
@@ -296,10 +309,11 @@
         </aside>
         
         <main class="main-content">
-            <!-- Desktop Header (Hidden on Mobile) -->
+            <!-- Desktop Header -->
             <div class="header-bar" style="display: flex; @media(max-width:768px){display:none;}">
                 <div class="header-info">
-                    <span id="time-display" style="color:#aaa;">初始</span>
+                    <span id="location-display"><i class="fas fa-map-marker-alt"></i> 虛空</span>
+                    <span id="time-display" style="margin-left: 15px; color:#aaa;">初始</span>
                 </div>
                 <div>
                     <button class="menu-btn" onclick="generateLog()" style="background:none;border:none;color:#ffe082;font-size:20px;margin-right:10px;" title="日誌">✨</button>
@@ -322,7 +336,7 @@
     </div>
 
     <script>
-        // --- V71: Mobile Responsive Drawer + V70 Logic ---
+        // --- V72: Mobile UI Fixes + V70 Logic ---
         let confirmedModel = ""; 
         let conversationHistory = []; 
         let diceBag = []; 
@@ -338,7 +352,7 @@
         };
         let state = JSON.parse(JSON.stringify(initialState));
         const ATTR_MAP = { str:'力量', dex:'敏捷', con:'體質', int:'智力', wis:'感知', cha:'魅力' };
-        const ACCOUNTS_KEY = 'rpg_local_accounts_v71'; 
+        const ACCOUNTS_KEY = 'rpg_local_accounts_v72'; 
 
         function safeEncode(str) { return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1))); }
         function safeDecode(str) { return decodeURIComponent(Array.prototype.map.call(window.atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')); }
@@ -349,11 +363,9 @@
             if (cachedKey) window.USER_API_KEY = cachedKey;
         };
 
-        // --- V71: Mobile Toggle Logic ---
         window.toggleSidebar = function() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            // Check if we are on mobile
             if (window.innerWidth <= 768) {
                 if (sidebar.classList.contains('active')) {
                     sidebar.classList.remove('active');
@@ -365,7 +377,6 @@
             }
         };
 
-        // --- Account Logic ---
         let currentTab = 'login';
         window.switchTab = function(tab) {
             currentTab = tab;
@@ -410,7 +421,6 @@
             alert(`已儲存！(${currentUser})`);
         };
 
-        // --- Sync ---
         window.openSyncModal = function(mode) {
             if(mode === 'export') {
                 if(!currentUser) return alert("請先登入");
@@ -458,7 +468,6 @@
         };
         window.logout = function() { if(confirm("登出?")) location.reload(); };
 
-        // --- Attribute Setup ---
         window.startCharacterCreation = function() {
             state.worldPrompt = document.getElementById('world-prompt').value.trim() || "D&D 5e";
             if(!window.USER_API_KEY) {
@@ -475,49 +484,28 @@
             let min = parseInt(document.getElementById('stat-min').value)||72;
             let max = parseInt(document.getElementById('stat-max').value)||80;
             if (min>max) [min,max]=[max,min];
-            
             const target = Math.floor(Math.random()*(max-min+1))+min;
             const keys=['str','dex','con','int','wis','cha'];
             let base = target < 48 ? 1 : 8;
             keys.forEach(k => state.stats[k] = base);
             let pts = target - (base * 6);
             let safe = 0;
-            while(pts > 0 && safe < 2000){ 
-                const k = keys[Math.floor(Math.random()*6)]; 
-                if(state.stats[k] < 18){ state.stats[k]++; pts--; } 
-                safe++;
-            }
+            while(pts > 0 && safe < 2000){ const k = keys[Math.floor(Math.random()*6)]; if(state.stats[k]<18){ state.stats[k]++; pts--; } safe++; }
             renderStatEditor();
         }
 
-        window.adjustStat = function(k, d) { 
-            state.stats[k] += d; 
-            if(state.stats[k] < 1) state.stats[k] = 1; 
-            renderStatEditor(); 
-        }
-        
+        window.adjustStat = function(k, d) { state.stats[k] += d; if(state.stats[k] < 1) state.stats[k] = 1; renderStatEditor(); }
         function getMod(v) { return Math.floor((v-10)/2); }
         function getModStr(v) { const m=getMod(v); return m>=0?`+${m}`:`${m}`; }
 
         function renderStatEditor() {
             const currentSum = Object.values(state.stats).reduce((a,b)=>a+b, 0);
-            let h=''; 
-            for(let k in state.stats){
-                h += `<div class="attr-edit-box">
-                        <div class="attr-lbl" style="width:50px;">${k.toUpperCase()}<br><span style="font-size:12px;color:#888;">${ATTR_MAP[k]}</span></div>
-                        <div class="attr-ctrl">
-                            <button class="attr-btn" onclick="adjustStat('${k}',-1)">-</button>
-                            <div class="attr-val">${state.stats[k]}</div>
-                            <button class="attr-btn" onclick="adjustStat('${k}',1)">+</button>
-                        </div>
-                        <div style="font-size:16px;color:var(--success);width:35px;text-align:right;">${getModStr(state.stats[k])}</div>
-                      </div>`;
+            let h=''; for(let k in state.stats){
+                h += `<div class="attr-edit-box"><div class="attr-lbl" style="width:50px;">${k.toUpperCase()}<br><span style="font-size:12px;color:#888;">${ATTR_MAP[k]}</span></div><div class="attr-ctrl"><button class="attr-btn" onclick="adjustStat('${k}',-1)">-</button><div class="attr-val">${state.stats[k]}</div><button class="attr-btn" onclick="adjustStat('${k}',1)">+</button></div><div style="font-size:16px;color:var(--success);width:35px;text-align:right;">${getModStr(state.stats[k])}</div></div>`;
             }
             document.getElementById('char-stats-editor').innerHTML=h;
             state.maxHp = 10 + getMod(state.stats.con); state.hp = state.maxHp;
-            
-            state.maxMp = Math.max(1, getMod(state.stats.int) + getMod(state.stats.wis));
-            state.mp = state.maxMp;
+            state.maxMp = Math.max(1, getMod(state.stats.int) + getMod(state.stats.wis)); state.mp = state.maxMp;
             state.maxSan = 100; state.san = 90;
             document.getElementById('derived-stats').innerHTML=`總和: ${currentSum} | HP: ${state.maxHp}`;
         }
@@ -525,11 +513,10 @@
         window.confirmStart = async function() {
             document.getElementById('char-modal').classList.add('hidden');
             updateUI();
-            addMsg("sys","正在初始化世界 (V71 Mobile)...");
+            addMsg("sys","正在初始化世界 (V72)...");
             await detectModelAndStart();
         }
 
-        // --- Core API ---
         async function detectModelAndStart() {
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
@@ -703,6 +690,15 @@ JSON在結尾：
             document.getElementById('san-txt').innerText = `${state.san}/100`;
             document.getElementById('san-bar').style.width = `${state.san}%`;
             
+            // V72 Mobile Info Update
+            document.getElementById('location-display').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${state.location}`;
+            document.getElementById('time-display').innerText = state.time;
+            
+            document.getElementById('mobile-loc-display').innerText = state.location;
+            document.getElementById('mobile-time-display').innerText = state.time;
+            document.getElementById('mini-hp-bar').style.width = `${(state.hp/state.maxHp)*100}%`;
+            document.getElementById('mini-san-bar').style.width = `${(state.san/100)*100}%`;
+
             const invDiv = document.getElementById('inv-list');
             if(state.inventory && state.inventory.length > 0) {
                 invDiv.innerHTML = state.inventory.map(i => `
@@ -759,7 +755,6 @@ JSON在結尾：
             document.getElementById('btn-send-dice').style.display = 'none'; diceBag = []; renderDice();
         }
 
-        // --- AI Features ---
         async function callGeminiAux(prompt, title) {
             if(!confirmedModel) return alert("尚未開始遊戲");
             document.getElementById('log-modal').classList.remove('hidden');
