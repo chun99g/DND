@@ -3,22 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RPG Engine V72 (Mobile Optimized)</title>
+    <title>RPG Engine V73 (SAN Fix)</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- V72: UI Styles --- */
+        /* --- V73: Styles based on V72 (Stable) --- */
         :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --success: #03dac6; --warn: #cf6679; --drawer-bg: #1a1a1a; }
         
         body { margin: 0; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; font-size: 18px; }
 
         .app-container { display: flex; height: 100%; position: relative; }
-        
-        /* Sidebar: Desktop Default */
         .sidebar { width: 480px; background: #181818; border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; z-index: 20; transition: transform 0.3s ease; }
-        
-        /* Main Content */
         .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; z-index: 10; }
 
         .panel-content { padding: 15px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 15px; }
@@ -29,10 +25,8 @@
         .bar-fill { height: 100%; transition: width 0.5s ease; }
         .stat-row { display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 5px; }
 
-        /* Desktop Header */
         .header-bar { padding: 15px 24px; background: #181818; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: #aaa; }
         
-        /* Chat Log */
         .chat-log { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; font-size: 20px; line-height: 1.8; padding-bottom: 120px; }
         .msg { margin-bottom: 24px; max-width: 90%; padding: 20px 25px; border-radius: 12px; animation: fadeIn 0.3s; }
         .msg.gm { background: #252525; border-left: 6px solid var(--accent); color: #e5e5e5; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
@@ -43,21 +37,19 @@
         .opt-btn { background: #2a2a2a; color: #ccc; border: 1px solid #444; padding: 12px 20px; border-radius: 25px; cursor: pointer; font-size: 16px; transition: 0.2s; text-align: left; }
         .opt-btn:hover { background: #333; color: var(--accent); border-color: var(--accent); transform: translateY(-2px); }
 
-        /* Input Area (Shared) */
-        .input-area { padding: 20px; background: #181818; display: flex; gap: 15px; align-items: center; } /* Gap increased */
+        .input-area { padding: 20px; background: #181818; display: flex; gap: 15px; align-items: center; }
         input[type="text"] { flex: 1; padding: 16px; background: #252525; border: 1px solid #444; color: white; border-radius: 30px; outline: none; padding-left: 24px; font-size: 18px; }
-        .send-btn { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: #000; display: flex; align-items: center; justify-content: center; font-size: 24px; min-width: 56px; } /* min-width added */
-        .ai-btn { width: 56px; height: 56px; border-radius: 50%; background: #333; border: 1px solid #555; cursor: pointer; color: #ffe082; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: 0.2s; min-width: 56px; } /* min-width added */
+        .send-btn, .ai-btn { width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: 0.2s; min-width: 56px; }
+        .send-btn { background: var(--accent); color: #000; }
+        .ai-btn { background: #333; border: 1px solid #555; color: #ffe082; }
         .ai-btn:hover { background: #444; border-color: #ffe082; transform: scale(1.05); }
 
-        /* Modals */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-box { background: #1e1e1e; width: 90%; max-width: 550px; padding: 30px; border-radius: 12px; border: 1px solid #444; box-shadow: 0 10px 40px rgba(0,0,0,0.8); max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
         .modal-btn { width: 100%; padding: 16px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 18px; transition: 0.2s; }
         .modal-btn.secondary { background: #444; color: #fff; }
         .login-input { width: 100%; padding: 14px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; margin-bottom: 12px; font-size: 16px; box-sizing: border-box; }
 
-        /* Attribute Editor */
         .attr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .attr-main { text-align: center; background: #2a2a2a; padding: 8px; border-radius: 6px; }
         .attr-val { font-size: 24px; font-weight: bold; color: var(--accent); }
@@ -76,7 +68,6 @@
         .code-display { width: 100%; height: 200px; background: #111; color: #0f0; border: 1px solid #333; padding: 10px; font-family: monospace; font-size: 14px; resize: none; word-break: break-all; box-sizing: border-box; margin-bottom: 10px; }
         #log-content { background: #111; padding: 15px; border-radius: 8px; border: 1px solid #333; color: #ccc; line-height: 1.6; font-size: 16px; min-height: 200px; max-height: 400px; overflow-y: auto; }
 
-        /* Dice Canvas */
         #dice-stage { width: 100%; min-height: 240px; background: #e8eaed; border-bottom: 1px solid #333; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         #active-dice-area { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; padding: 15px; }
         .die { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white; cursor: pointer; user-select: none; transition: transform 0.1s; position: relative; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
@@ -105,16 +96,14 @@
         .list-item-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 12px 4px; }
         .list-btn { background: none; border: 1px solid #444; color: #aaa; border-radius: 4px; padding: 4px 10px; font-size: 16px; cursor: pointer; margin-left: 8px; }
 
-        /* --- V72: Mobile Header & Layout Fixes --- */
+        /* Mobile Header */
         .mobile-header { display: none; padding: 12px 16px; background: #1e1e1e; border-bottom: 1px solid #333; align-items: center; justify-content: space-between; gap: 10px; }
         .hamburger-btn { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 5px; }
         
-        /* Mobile Status Mini Bar */
         .mobile-status-mini { display: none; gap: 8px; align-items: center; width: 100px; }
         .mini-bar { width: 100%; height: 4px; background: #333; border-radius: 2px; overflow: hidden; margin-top: 2px; }
         .mini-fill { height: 100%; }
 
-        /* Mobile Responsive */
         @media (max-width: 768px) {
             .app-container { flex-direction: column; }
             .sidebar { 
@@ -127,31 +116,24 @@
             .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 90; }
             .sidebar-overlay.active { display: block; }
 
-            /* V72: Mobile Header Layout - [Status] [Loc/Time] [Actions] */
             .mobile-header { display: flex; }
-            .header-bar { display: none; } /* Hide Desktop Header */
+            .header-bar { display: none; } 
             
             .mobile-status-mini { display: flex; flex-direction: column; width: 60px; margin-right: 10px; }
-            
-            /* Center Info */
             .mobile-info { flex: 1; text-align: center; display: flex; flex-direction: column; justify-content: center; }
             .mobile-loc { font-size: 16px; font-weight: bold; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .mobile-time { font-size: 12px; color: #aaa; }
-
-            /* Right Actions */
             .mobile-actions { display: flex; gap: 15px; }
 
             .main-content { width: 100%; height: 100%; flex: 1; }
             .chat-log { padding-bottom: 140px; font-size: 22px; }
             
-            /* Input Area Fixes */
             .input-area { padding: 15px; background: #111; border-top: 1px solid #333; }
             input[type="text"] { font-size: 20px; padding: 18px; }
-            /* Force min-width to prevent squeezing */
             .send-btn, .ai-btn { min-width: 60px; width: 60px; height: 60px; font-size: 28px; } 
 
             .dice-btn-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
-            .attr-edit-grid { grid-template-columns: 1fr; }
+            .attr-edit-grid { grid-template-columns: 1fr; } 
         }
         
         @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(10deg); } 50% { transform: rotate(-10deg); } 75% { transform: rotate(5deg); } 100% { transform: rotate(0deg); } }
@@ -161,7 +143,7 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-box" style="width: 400px;">
-            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V72</h2>
+            <h2 style="color:var(--accent); margin-top:0; text-align:center;">RPG Engine V73</h2>
             <div class="login-tabs" style="display:flex; margin-bottom:20px; border-bottom:1px solid #444;">
                 <button id="tab-login" style="flex:1; background:none; border:none; color:#ccc; padding:10px; font-size:18px;" onclick="switchTab('login')">登入</button>
                 <button id="tab-register" style="flex:1; background:none; border:none; color:#888; padding:10px; font-size:18px;" onclick="switchTab('register')">註冊</button>
@@ -220,21 +202,15 @@
 
     <div class="app-container">
         
-        <!-- V72: Improved Mobile Header -->
         <div class="mobile-header">
-            <!-- Left: Mini Status -->
             <div class="mobile-status-mini">
                 <div class="mini-bar" style="background:#333;"><div id="mini-hp-bar" class="mini-fill" style="width:100%; background:#cf6679;"></div></div>
                 <div class="mini-bar" style="background:#333;"><div id="mini-san-bar" class="mini-fill" style="width:100%; background:#bb86fc;"></div></div>
             </div>
-
-            <!-- Center: Location/Time -->
             <div class="mobile-info">
                 <div id="mobile-loc-display" class="mobile-loc">初始地點</div>
                 <div id="mobile-time-display" class="mobile-time">時間未知</div>
             </div>
-
-            <!-- Right: Actions -->
             <div class="mobile-actions">
                 <button class="hamburger-btn" onclick="generateLog()" title="日誌"><i class="fas fa-book"></i></button>
                 <button class="hamburger-btn" onclick="toggleSidebar()" title="選單"><i class="fas fa-bars"></i></button>
@@ -243,7 +219,6 @@
 
         <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
         
-        <!-- Sidebar -->
         <aside id="sidebar" class="sidebar">
             <div class="mobile-header" style="display: flex; border-bottom: 1px solid #333; background: #222;">
                 <span style="color:#aaa; font-weight:bold;">角色面板</span>
@@ -309,7 +284,6 @@
         </aside>
         
         <main class="main-content">
-            <!-- Desktop Header -->
             <div class="header-bar" style="display: flex; @media(max-width:768px){display:none;}">
                 <div class="header-info">
                     <span id="location-display"><i class="fas fa-map-marker-alt"></i> 虛空</span>
@@ -336,7 +310,7 @@
     </div>
 
     <script>
-        // --- V72: Mobile UI Fixes + V70 Logic ---
+        // --- V73: SAN Logic Fix + V72 UI ---
         let confirmedModel = ""; 
         let conversationHistory = []; 
         let diceBag = []; 
@@ -352,7 +326,7 @@
         };
         let state = JSON.parse(JSON.stringify(initialState));
         const ATTR_MAP = { str:'力量', dex:'敏捷', con:'體質', int:'智力', wis:'感知', cha:'魅力' };
-        const ACCOUNTS_KEY = 'rpg_local_accounts_v72'; 
+        const ACCOUNTS_KEY = 'rpg_local_accounts_v73'; 
 
         function safeEncode(str) { return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1))); }
         function safeDecode(str) { return decodeURIComponent(Array.prototype.map.call(window.atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')); }
@@ -513,10 +487,11 @@
         window.confirmStart = async function() {
             document.getElementById('char-modal').classList.add('hidden');
             updateUI();
-            addMsg("sys","正在初始化世界 (V72)...");
+            addMsg("sys","正在初始化世界 (V73 SAN Fix)...");
             await detectModelAndStart();
         }
 
+        // --- Core API (V73 Prompt Fix) ---
         async function detectModelAndStart() {
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${window.USER_API_KEY}`);
@@ -531,20 +506,18 @@
 2. **沉浸感**：大量描寫氣味、觸感、光影。
 3. **Show, Don't Tell**。
 
-【規則】
-1. **禁止代擲**：DM 絕不給出傷害/治療數值或判定結果。
-   - 錯誤：「你造成 5 點傷害。」
-   - 正確：「攻擊命中！請投擲 **1d8+2** 計算傷害。」
-2. **檢定格式 (必備)**：
-   - 1顆 D20
-   - 檢定名稱 (感知(察覺))
-   - 修正值 (+X)
-   - DC (15)
-   - 範例：「請投擲 **D20** 進行 **[敏捷 (隱匿)]** 檢定 (修正值 +3, DC 14)。」
+【規則：檢定格式 (嚴格區分)】
+1. **一般檢定 (D20)**：對抗 DC。
+   - 格式：「請投擲 **1顆 D20** 進行 **[敏捷 (隱匿)]** 檢定 (修正值 +X, DC Y)。」
+2. **SAN Check (D100)**：**絕不使用 DC**，而是對抗當前 SAN 值。
+   - 格式：「請投擲 **1顆 D100** 進行 **SAN Check** (當前 SAN: ${state.san}，**擲出結果 <= ${state.san} 即成功**)。若失敗扣除 1d4 SAN。」
+3. **傷害/治療**：
+   - 格式：「攻擊命中！請投擲 **1d8+2** 計算傷害。」
 
-【多樣骰子】
-積極使用 D4-D12 決定程度、數量。
-SAN 系統：D100 檢定。
+【其他】
+1. **禁止代擲**：DM 絕不給出數值結果。
+2. **多樣骰子**：積極使用 D4-D12。
+3. **物品**：JSON 中使用 add_item/remove_item。
 
 【當前狀態】${JSON.stringify(state.stats)}
 
@@ -566,7 +539,7 @@ JSON在結尾：
 \`\`\`
 世界觀：「${state.worldPrompt}」。請以創意方式開場。`;
                 
-                conversationHistory = [{role:"user", parts:[{text:sysPrompt}]}, {role:"model", parts:[{text:"遵命，我將編織這段冒險。"}]}];
+                conversationHistory = [{role:"user", parts:[{text:sysPrompt}]}, {role:"model", parts:[{text:"遵命，我將嚴格遵守檢定規則。"}]}];
                 await callAI(`(冒險開始)`);
                 saveToAccount();
             } catch(e) { alert("啟動失敗: " + e.message); }
@@ -690,7 +663,7 @@ JSON在結尾：
             document.getElementById('san-txt').innerText = `${state.san}/100`;
             document.getElementById('san-bar').style.width = `${state.san}%`;
             
-            // V72 Mobile Info Update
+            // V72: Mobile Info Updates
             document.getElementById('location-display').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${state.location}`;
             document.getElementById('time-display').innerText = state.time;
             
@@ -755,6 +728,7 @@ JSON在結尾：
             document.getElementById('btn-send-dice').style.display = 'none'; diceBag = []; renderDice();
         }
 
+        // --- AI Features ---
         async function callGeminiAux(prompt, title) {
             if(!confirmedModel) return alert("尚未開始遊戲");
             document.getElementById('log-modal').classList.remove('hidden');
